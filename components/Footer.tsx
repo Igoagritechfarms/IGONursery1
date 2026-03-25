@@ -24,7 +24,7 @@ const Footer: React.FC<FooterProps> = ({ setCurrentPage }) => {
                 <div className="flex items-start">
                   <span className="text-igo-lime font-black text-2xl tracking-tighter uppercase">Igo</span>
                   <div className="absolute -top-3 -right-6">
-                     <Pickaxe className="text-white w-10 h-10 rotate-[20deg] opacity-90" />
+                    <Pickaxe className="text-white w-10 h-10 rotate-[20deg] opacity-90" />
                   </div>
                 </div>
                 <span className="text-white font-black text-4xl tracking-tighter -mt-1 uppercase">Agri</span>
@@ -47,6 +47,7 @@ const Footer: React.FC<FooterProps> = ({ setCurrentPage }) => {
             <h4 className="text-lg font-bold mb-8 text-igo-lime uppercase tracking-widest text-xs">Navigation</h4>
             <ul className="space-y-4 text-gray-400">
               <li><button onClick={handleNav(Page.Shop)} className="hover:text-igo-lime transition-colors text-left">Shop Plants</button></li>
+              <li><button onClick={handleNav(Page.Product)} className="hover:text-igo-lime transition-colors text-left">Product Page</button></li>
               <li><button onClick={handleNav(Page.Landscape)} className="hover:text-igo-lime transition-colors text-left">Landscape Design</button></li>
               <li><button onClick={handleNav(Page.AMC)} className="hover:text-igo-lime transition-colors text-left">Garden Care (AMC)</button></li>
               <li><button onClick={handleNav(Page.Lab)} className="hover:text-igo-lime transition-colors text-left">IGO R&D Lab</button></li>
@@ -87,11 +88,11 @@ const Footer: React.FC<FooterProps> = ({ setCurrentPage }) => {
               </li>
               <li className="mt-8">
                 <div className="bg-white/5 p-6 rounded-2xl">
-                    <h5 className="font-bold text-white mb-2 text-sm">Join the IGO Collective</h5>
-                    <div className="flex gap-2">
-                        <input type="email" placeholder="Email" className="bg-transparent border border-white/20 px-4 py-2 rounded-lg text-sm flex-grow focus:outline-none focus:border-igo-lime" />
-                        <button className="bg-igo-lime text-igo-dark px-4 py-2 rounded-lg font-bold hover:bg-white transition-colors">Join</button>
-                    </div>
+                  <h5 className="font-bold text-white mb-2 text-sm">Join the IGO Collective</h5>
+                  <div className="flex gap-2">
+                    <input type="email" placeholder="Email" className="bg-transparent border border-white/20 px-4 py-2 rounded-lg text-sm flex-grow focus:outline-none focus:border-igo-lime" />
+                    <button className="bg-igo-lime text-igo-dark px-4 py-2 rounded-lg font-bold hover:bg-white transition-colors">Join</button>
+                  </div>
                 </div>
               </li>
             </ul>

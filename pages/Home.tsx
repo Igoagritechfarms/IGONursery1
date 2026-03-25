@@ -100,7 +100,7 @@ const Home: React.FC = () => {
                 { title: 'ECR Ocean Villa', status: 'Planting Phase', area: '12,000 sq.ft', img: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&q=80&w=600' },
                 { title: 'The Palms Resort', status: 'AMC Active', area: '4.5 Acres', img: 'https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&q=80&w=600' },
                 { title: 'Zen Corporate HQ', status: 'Interior Bio-Design', area: '25,000 sq.ft', img: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=600' },
-                { title: 'Muttukadu Heights', status: 'Vertical Greenery', area: '3,200 sq.ft', img: 'https://images.unsplash.com/photo-1590054790395-63ad360ca217?auto=format&fit=crop&q=80&w=600' }
+                { title: 'Muttukadu Heights', status: 'Vertical Greenery', area: '3,200 sq.ft', img: '/images/sites/muttukadu-heights.png' }
             ].map((proj, i) => (
                 <div key={i} className="flex-shrink-0 w-80 bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden group cursor-pointer hover:shadow-xl transition-all">
                     <div className="h-48 relative overflow-hidden">
@@ -130,7 +130,7 @@ const Home: React.FC = () => {
               tagline: 'Precision Grown',
               desc: 'Premium polyhouse-grown plants delivered across India with our zero-damage packaging guarantee.', 
               icon: <Leaf className="w-10 h-10" />,
-              link: '#shop',
+              link: '#product',
               img: 'https://images.unsplash.com/photo-1545241047-6083a3684587?auto=format&fit=crop&q=80&w=800',
               accent: 'bg-igo-lime'
             },
@@ -149,7 +149,7 @@ const Home: React.FC = () => {
               desc: 'Annual maintenance contracts managed by lab-certified agronomists. We track health so you don\'t have to.', 
               icon: <Zap className="w-10 h-10" />,
               link: '#amc',
-              img: 'https://images.unsplash.com/photo-1558905619-17254263bc89?auto=format&fit=crop&q=80&w=800',
+              img: '/images/services/amc-program.png',
               accent: 'bg-white border-2 border-igo-dark'
             }
           ].map((card, idx) => (
@@ -172,6 +172,33 @@ const Home: React.FC = () => {
               </div>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Product Page Section */}
+      <section className="pb-24 max-w-7xl mx-auto px-4">
+        <div className="bg-gradient-to-r from-igo-dark to-igo-charcoal rounded-[2.5rem] p-10 md:p-14 text-white grid lg:grid-cols-2 gap-10 items-center overflow-hidden relative">
+          <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(#84cc16 0.5px, transparent 0.5px)', backgroundSize: '20px 20px' }}></div>
+          <div className="relative z-10">
+            <div className="text-xs uppercase tracking-[0.3em] font-black text-igo-lime mb-4">New Section</div>
+            <h3 className="text-4xl md:text-5xl font-black tracking-tighter mb-5">Product Page is Live.</h3>
+            <p className="text-gray-300 text-lg mb-8 max-w-xl">
+              Explore curated collections, planting essentials, and landscape-ready material in one dedicated product experience.
+            </p>
+            <button
+              onClick={() => window.location.hash = 'product'}
+              className="bg-igo-lime text-igo-dark px-8 py-4 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-white transition-colors inline-flex items-center gap-3"
+            >
+              Open Product Page <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="relative z-10">
+            <img
+              src="/images/indoor/monstera.png"
+              alt="Featured product collection"
+              className="w-full h-[320px] md:h-[380px] object-cover rounded-3xl border border-white/10"
+            />
+          </div>
         </div>
       </section>
 

@@ -2,6 +2,7 @@
 export enum Page {
   Home = 'home',
   Shop = 'shop',
+  Product = 'product',
   Assistant = 'assistant',
   Landscape = 'landscape',
   AMC = 'amc',

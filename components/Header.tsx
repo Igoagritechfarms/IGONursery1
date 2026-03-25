@@ -14,6 +14,7 @@ const Header: React.FC<HeaderProps> = ({ currentPage, setCurrentPage, cartCount 
 
   const navItems = [
     { name: 'Store', page: Page.Shop },
+    { name: 'Product', page: Page.Product },
     { name: 'Landscape Studio', page: Page.Landscape },
     { name: 'AMC Care', page: Page.AMC },
     { name: 'Tech Lab', page: Page.Lab },
