@@ -6,7 +6,7 @@ const Home: React.FC = () => {
   return (
     <div className="animate-in fade-in duration-1000">
       {/* Precision Hero */}
-      <section className="relative min-h-[92vh] flex items-center overflow-hidden bg-igo-dark">
+      <section className="relative min-h-[92vh] flex items-center overflow-x-hidden overflow-y-visible bg-igo-dark">
         {/* Background Layer */}
         <div className="absolute inset-0 z-0">
           <img 
@@ -19,7 +19,7 @@ const Home: React.FC = () => {
           <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(#84cc16 0.5px, transparent 0.5px)', backgroundSize: '24px 24px' }}></div>
         </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 w-full">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-8">
               <div className="inline-flex items-center gap-3 bg-white/5 border border-white/10 px-4 py-2 rounded-full backdrop-blur-md">
@@ -36,6 +36,16 @@ const Home: React.FC = () => {
                 IGO is not just a nursery. We are an AgriTech farm using IoT data and precision trials to grow the healthiest plant palette in India.
               </p>
 
+              <div className="lg:hidden inline-flex items-center gap-3 glass px-4 py-3 rounded-2xl shadow-2xl border-l-4 border-blue-500">
+                <div className="bg-blue-100 p-2.5 rounded-xl">
+                  <ShieldCheck className="text-blue-600 w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-xl font-black text-igo-dark">99.2%</div>
+                  <div className="text-[10px] text-igo-muted uppercase font-black tracking-widest">Health Guarantee</div>
+                </div>
+              </div>
+
               <div className="flex flex-wrap gap-5 pt-6">
                 <button onClick={() => window.location.hash = 'assistant'} className="bg-igo-lime text-igo-dark px-10 py-5 rounded-2xl font-black uppercase text-sm tracking-widest hover:bg-white hover:scale-105 transition-all flex items-center gap-3 shadow-[0_0_40px_rgba(132,204,22,0.3)]">
                   Start Garden Assistant
@@ -48,10 +58,10 @@ const Home: React.FC = () => {
             </div>
 
             {/* Visual Dashboard Side */}
-            <div className="hidden lg:block relative">
-              <div className="relative w-full aspect-square float">
+            <div className="hidden lg:block relative z-20">
+              <div className="relative w-full max-w-[34rem] ml-auto aspect-square float">
                 {/* Floating Tech Modules */}
-                <div className="absolute top-10 -left-4 glass p-5 rounded-3xl shadow-2xl z-30 flex items-center gap-4 border-l-4 border-igo-lime">
+                <div className="absolute top-10 left-2 xl:-left-4 glass p-5 rounded-3xl shadow-2xl z-30 flex items-center gap-4 border-l-4 border-igo-lime">
                   <div className="bg-igo-dark p-3 rounded-2xl">
                     <Cpu className="text-igo-lime w-6 h-6" />
                   </div>
@@ -61,7 +71,7 @@ const Home: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="absolute bottom-20 -right-10 glass p-5 rounded-3xl shadow-2xl z-30 flex items-center gap-4 border-l-4 border-blue-500">
+                <div className="absolute bottom-14 right-2 xl:right-0 glass p-5 rounded-3xl shadow-2xl z-40 flex items-center gap-4 border-l-4 border-blue-500">
                   <div className="bg-blue-100 p-3 rounded-2xl">
                     <ShieldCheck className="text-blue-600 w-6 h-6" />
                   </div>
