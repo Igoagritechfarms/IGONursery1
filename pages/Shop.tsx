@@ -94,7 +94,7 @@ const MOCK_PRODUCTS: Product[] = [
   { id: '77', name: 'NEW ZEALAND FLEX', price: 2800, category: 'Outdoor', image: '/images/outdoor/NEW_ZEALAND.webp', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
   { id: '78', name: 'ELEPHANT EAR ', price: 2800, category: 'Outdoor', image: '/images/outdoor/ELEPHANT.webp', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
   { id: '78', name: 'LUNGWORT', price: 2800, category: 'Outdoor', image: '/images/outdoor/LUNGWORT.webp', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '78', name: 'LILYTURF ', price: 2800, category: 'Outdoor', image: '/images/outdoor/LILYTURF.webp', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
+  { id: '78', name: 'LILYT ', price: 2800, category: 'Outdoor', image: '/images/outdoor/LILYTURF.webp', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
 
 
 
