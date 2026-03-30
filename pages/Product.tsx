@@ -1,5 +1,6 @@
 import React from 'react';
-import { ArrowLeft, ArrowRight, Package } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Package, ShoppingCart } from 'lucide-react';
+import { StoreProduct } from '../types';
 
 type ProductItem = {
   slug: string;
@@ -15,6 +16,7 @@ type ProductItem = {
 interface ProductProps {
   selectedSlug?: string | null;
   onOpenProduct?: (slug: string) => void;
+  onAddToCart?: (product: StoreProduct) => void;
 }
 
 const PRODUCTS: ProductItem[] = [
@@ -55,7 +57,7 @@ const formatCurrency = (amount: number): string =>
     maximumFractionDigits: 0,
   }).format(amount);
 
-const Product: React.FC<ProductProps> = ({ selectedSlug = null, onOpenProduct }) => {
+const Product: React.FC<ProductProps> = ({ selectedSlug = null, onOpenProduct, onAddToCart }) => {
   const selectedProduct = selectedSlug
     ? PRODUCTS.find((product) => product.slug === selectedSlug) ?? null
     : null;
@@ -92,6 +94,17 @@ const Product: React.FC<ProductProps> = ({ selectedSlug = null, onOpenProduct })
   if (selectedProduct) {
     const savings = selectedProduct.mrp - selectedProduct.price;
     const relatedProducts = PRODUCTS.filter((item) => item.slug !== selectedProduct.slug).slice(0, 3);
+    const handleAddCurrentProductToCart = () => {
+      if (!onAddToCart) return;
+      onAddToCart({
+        id: `product-${selectedProduct.slug}`,
+        name: selectedProduct.name,
+        price: selectedProduct.price,
+        category: selectedProduct.category,
+        image: getProductImagePath(selectedProduct.imageFile),
+        description: selectedProduct.description,
+      });
+    };
 
     return (
       <div className="animate-in fade-in duration-500">
@@ -151,10 +164,10 @@ const Product: React.FC<ProductProps> = ({ selectedSlug = null, onOpenProduct })
               </div>
 
               <button
-                onClick={() => (window.location.hash = 'shop')}
+                onClick={handleAddCurrentProductToCart}
                 className="bg-igo-dark text-white px-8 py-4 rounded-xl font-black uppercase text-xs tracking-widest inline-flex items-center gap-3"
               >
-                Continue to Store <ArrowRight className="w-4 h-4" />
+                <ShoppingCart className="w-4 h-4" /> Add to Cart
               </button>
             </div>
           </div>

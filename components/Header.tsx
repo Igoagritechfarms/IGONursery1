@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Page } from '../types';
-import { ShoppingCart, User, Menu, Search, Pickaxe, Zap, X, ChevronRight } from 'lucide-react';
+import { ShoppingCart, Menu, Search, Zap, X, ChevronRight } from 'lucide-react';
 
 interface HeaderProps {
   currentPage: Page;
@@ -36,16 +36,11 @@ const Header: React.FC<HeaderProps> = ({ currentPage, setCurrentPage, cartCount 
               className="flex items-center gap-3 cursor-pointer group py-2"
               onClick={() => handleNav(Page.Home)}
             >
-              <div className="flex flex-col leading-none relative">
-                <div className="flex items-start">
-                  <span className="text-igo-lime font-black text-2xl tracking-tighter">IGO</span>
-                  <div className="absolute -top-3 -right-6">
-                     <Pickaxe className="text-igo-dark w-10 h-10 rotate-[20deg] opacity-90 group-hover:rotate-[30deg] transition-transform duration-500" />
-                  </div>
-                </div>
-                <span className="text-igo-dark font-black text-4xl tracking-tighter -mt-1 uppercase">AGRI</span>
-                <span className="text-igo-lime font-black text-[10px] tracking-[0.25em] -mt-0.5 uppercase">Techfarms</span>
-              </div>
+              <img
+                src="/images/branding/igo-logo.jpg"
+                alt="IGO Agritechfarms"
+                className="h-14 w-auto rounded-lg border border-gray-100 shadow-sm object-contain bg-white"
+              />
             </div>
 
             {/* Precision Nav (Desktop) */}
@@ -85,7 +80,15 @@ const Header: React.FC<HeaderProps> = ({ currentPage, setCurrentPage, cartCount 
               </button>
 
               <div className="relative ml-2">
-                <button className="p-2.5 text-igo-dark hover:bg-gray-50 rounded-xl transition-colors">
+                <button
+                  onClick={() => handleNav(Page.Cart)}
+                  className={`p-2.5 rounded-xl transition-colors ${
+                    currentPage === Page.Cart
+                      ? 'bg-igo-dark text-white'
+                      : 'text-igo-dark hover:bg-gray-50'
+                  }`}
+                  aria-label="Open cart"
+                >
                   <ShoppingCart className="w-5 h-5" />
                   {cartCount > 0 && (
                     <span className="absolute top-1 right-1 bg-igo-lime text-igo-dark text-[10px] rounded-full w-4 h-4 flex items-center justify-center font-black shadow-sm">
@@ -113,10 +116,11 @@ const Header: React.FC<HeaderProps> = ({ currentPage, setCurrentPage, cartCount 
       >
         <div className="p-6 h-full flex flex-col">
           <div className="flex justify-between items-center mb-12">
-             <div className="flex flex-col leading-none scale-75 origin-left">
-                <span className="text-igo-lime font-black text-xl tracking-tighter">IGO</span>
-                <span className="text-igo-dark font-black text-3xl tracking-tighter uppercase">AGRI</span>
-             </div>
+             <img
+                src="/images/branding/igo-logo.jpg"
+                alt="IGO Agritechfarms"
+                className="h-14 w-auto rounded-lg border border-gray-100 shadow-sm object-contain bg-white"
+             />
              <button onClick={() => setIsMenuOpen(false)} className="p-2 bg-gray-100 rounded-full">
                 <X className="w-6 h-6" />
              </button>

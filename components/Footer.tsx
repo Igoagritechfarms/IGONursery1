@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Facebook, Instagram, Twitter, Linkedin, Mail, Phone, MapPin, Pickaxe } from 'lucide-react';
+import { Facebook, Instagram, Twitter, Linkedin, Mail, Phone, MapPin } from 'lucide-react';
 import { Page } from '../types';
 
 interface FooterProps {
@@ -20,16 +20,11 @@ const Footer: React.FC<FooterProps> = ({ setCurrentPage }) => {
           {/* Brand Info - Logo Match */}
           <div className="space-y-6">
             <div className="flex items-center gap-3 py-2 cursor-pointer" onClick={handleNav(Page.Home)}>
-              <div className="flex flex-col leading-none relative">
-                <div className="flex items-start">
-                  <span className="text-igo-lime font-black text-2xl tracking-tighter uppercase">Igo</span>
-                  <div className="absolute -top-3 -right-6">
-                    <Pickaxe className="text-white w-10 h-10 rotate-[20deg] opacity-90" />
-                  </div>
-                </div>
-                <span className="text-white font-black text-4xl tracking-tighter -mt-1 uppercase">Agri</span>
-                <span className="text-igo-lime font-black text-[10px] tracking-[0.25em] -mt-0.5 uppercase">Techfarms</span>
-              </div>
+              <img
+                src="/images/branding/igo-logo.jpg"
+                alt="IGO Agritechfarms"
+                className="h-16 w-auto rounded-lg border border-white/20 shadow-sm object-contain bg-white"
+              />
             </div>
             <p className="text-gray-400 font-light leading-relaxed">
               Pioneering high-tech greenery solutions for modern living. From precision-grown indoor plants to large-scale resort landscapes.
@@ -48,6 +43,7 @@ const Footer: React.FC<FooterProps> = ({ setCurrentPage }) => {
             <ul className="space-y-4 text-gray-400">
               <li><button onClick={handleNav(Page.Shop)} className="hover:text-igo-lime transition-colors text-left">Shop Plants</button></li>
               <li><button onClick={handleNav(Page.Product)} className="hover:text-igo-lime transition-colors text-left">Product Page</button></li>
+              <li><button onClick={handleNav(Page.Cart)} className="hover:text-igo-lime transition-colors text-left">Cart</button></li>
               <li><button onClick={handleNav(Page.Landscape)} className="hover:text-igo-lime transition-colors text-left">Landscape Design</button></li>
               <li><button onClick={handleNav(Page.AMC)} className="hover:text-igo-lime transition-colors text-left">Garden Care (AMC)</button></li>
               <li><button onClick={handleNav(Page.Lab)} className="hover:text-igo-lime transition-colors text-left">IGO R&D Lab</button></li>

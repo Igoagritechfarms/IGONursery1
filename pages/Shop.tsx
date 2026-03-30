@@ -102,7 +102,7 @@ const MOCK_PRODUCTS: Product[] = [
 ];
 
 interface ShopProps {
-  addToCart: () => void;
+  addToCart: (product: Product) => void;
 }
 
 const Shop: React.FC<ShopProps> = ({ addToCart }) => {
@@ -147,7 +147,7 @@ const Shop: React.FC<ShopProps> = ({ addToCart }) => {
                   <span className="bg-white/90 backdrop-blur px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest">{product.maintenance} Care</span>
                 </div>
                 <button
-                  onClick={(e) => { e.stopPropagation(); addToCart(); }}
+                  onClick={(e) => { e.stopPropagation(); addToCart(product); }}
                   className="absolute bottom-4 right-4 bg-white p-4 rounded-2xl shadow-xl translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 hover:bg-green-700 hover:text-white"
                 >
                   <ShoppingBag className="w-5 h-5" />
