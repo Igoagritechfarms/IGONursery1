@@ -1,105 +1,163 @@
-
-
-import React, { useState } from 'react';
-import { Filter, ShoppingBag, Star, ShieldCheck, Truck, RotateCcw } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { Search, ShoppingBag, Star, ShieldCheck, Truck, RotateCcw } from 'lucide-react';
 import { Product } from '../types';
-//redeploy trigger
 
-const MOCK_PRODUCTS: Product[] = [
- {
-  id: '1',
-  name: 'Monstera Deliciosa',
-  price: 1450,
-  category: 'Indoor',
-  image: '/images/indoor/monstera.png',
-  maintenance: 'Medium',
-  light: 'Indirect',
-  description: 'Classic Swiss Cheese Plant, grown in climate-controlled polyhouses for superior leaf health.'
-},
-  { id: '2', name: 'Fiddle Leaf Fig', price: 2800, category: 'Indoor', image: '/images/indoor/Fiddle Leaf Fig.webp', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '3', name: 'Zamioculcas Zamiifolia (ZZ)', price: 850, category: 'Indoor', image: '/images/outdoor/Zamioculcas.jpeg', maintenance: 'Low', light: 'Shade', description: 'The indestructible office plant. Ultra-low water requirements.' },
-  { id: '4', name: 'Areca Palm (Large)', price: 1200, category: 'Outdoor', image: '/images/indoor/Areca_Palm.webp', maintenance: 'Medium', light: 'Direct', description: 'Natural air purifier. Perfect for screening and creating privacy.' },
-  { id: '5', name: 'Snake Plant Futura', price: 650, category: 'Indoor', image: 'https://images.unsplash.com/photo-1596547609652-9cf5d8d76921?auto=format&fit=crop&q=80&w=400', maintenance: 'Low', light: 'Shade', description: 'Hardy air purifier that releases oxygen at night.' },
-  { id: '6', name: 'Birds of Paradise', price: 3500, category: 'Landscape', image: 'https://images.unsplash.com/photo-1509223197845-458d87318791?auto=format&fit=crop&q=80&w=400', maintenance: 'Medium', light: 'Direct', description: 'Stunning tropical flowers. Ideal for resort-style home gardens.' },
-  { id: '7', name: 'ZZ Plant', price: 2800, category: 'Indoor', image: '/images/indoor/ZZplant.jpg', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '8', name: 'Money Plant (Pothos)', price: 2800, category: 'Indoor', image: '/images/indoor/Money_Plant.jpg', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '9', name: 'Aglaonema(Lipstick)', price: 2800, category: 'Indoor', image: '/images/indoor/aglaonema.webp', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '10', name: 'Philodendron', price: 2800, category: 'Indoor', image: '/images/indoor/Philodendron.webp', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '11', name: 'Bamboo Palm', price: 2800, category: 'Indoor', image: '/images/indoor/bamboo-palm.webp', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '12', name: 'Spider Plant ', price: 2800, category: 'Indoor', image: '/images/indoor/Spider_Plant.jpg', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '13', name: 'Chinese Evergreen', price: 2800, category: 'Indoor', image: '/images/indoor/Chinese_Evergreen.jpg', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '14', name: 'Peace Lily', price: 2800, category: 'Indoor', image: '/images/indoor/Peace_Lily.webp', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '15', name: 'Anthurium', price: 2800, category: 'Indoor', image: '/images/indoor/Anthurium.jpg', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '16', name: 'Calathea', price: 2800, category: 'Indoor', image: '/images/indoor/Calathea.webp', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '17', name: 'Fiddle Leaf Fig ', price: 2800, category: 'Indoor', image: '/images/indoor/Fiddle.webp', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '18', name: 'Ferns (Boston/Bird Nest) ', price: 2800, category: 'Indoor', image: '/images/indoor/Ferns.webp', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '19', name: 'Jade Plant', price: 2800, category: 'Indoor', image: '/images/indoor/Jade.jpg', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '20', name: 'String of Pearls', price: 2800, category: 'Indoor', image: '/images/indoor/String.webp', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '21', name: 'Echeveria / Haworthia', price: 2800, category: 'Indoor', image: '/images/indoor/Echeveria.jpg', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '22', name: 'Kalanchoe', price: 2800, category: 'Indoor', image: '/images/indoor/Kalanchoe.webp', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '23', name: 'Golden Barrel Cactus', price: 2800, category: 'Indoor', image:'/images/indoor/golden.webp', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '24', name: 'Bunny Ear / Old Man Cactus', price: 2800, category: 'Indoor', image: '/images/indoor/Bunny.jpg', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '25', name: 'Moon Cactus', price: 2800, category: 'Indoor', image:'/images/indoor/Moon.webp', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant.' },
-  { id: '26', name: 'Fairy Castle Cactus', price: 2800, category: 'Indoor', image:'/images/indoor/Fairy.jpg', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '27', name: 'Aloe Vera', price: 2800, category: 'Indoor', image: '/images/indoor/Aloe.webp', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '28', name: 'Vinca (Periwinkle) ', price: 2800, category: 'Outdoor', image: '/images/outdoor/vinca.jpg', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '29', name: 'Bougainvillea (Star/Torch)', price: 2800, category: 'Outdoor', image: '/images/outdoor/Bougainvillea.webp', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '30', name: 'Hibiscus (Hybrid/Pune) ', price: 2800, category: 'Outdoor', image: '/images/outdoor/Hibiscus.webp', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '31', name: 'Ixora (Dwarf Red/Pink)  ', price: 2800, category: 'Outdoor', image: '/images/outdoor/ixora.jfif', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '32', name: 'Tecoma (Yellow Bells)', price: 2800, category: 'Outdoor', image: '/images/outdoor/Tecoma.webp', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '33', name: 'Tabernaemontana', price: 2800, category: 'Outdoor', image: '/images/outdoor/Tabernaemontana.jpg', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '34', name: 'Lantana', price: 2800, category: 'Outdoor', image: '/images/outdoor/Lantana.jpg', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '35', name: 'Thunbergia (Clock Vine)', price: 2800, category: 'Outdoor', image: '/images/outdoor/Rangoon.jpg', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '36', name: 'Rangoon Creeper ', price: 2800, category: 'Outdoor', image: '/images/outdoor/Nerium.jpg', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '37', name: 'Vernonia (Curtain Creeper) ', price: 2800, category: 'Outdoor', image: '/images/outdoor/Vernonia.jpg', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '38', name: 'Bottlebrush', price: 2800, category: 'Outdoor', image: '/images/outdoor/Bottlebrush.jpg', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '39', name: 'Portulaca (Table Rose)', price: 2800, category: 'Outdoor', image: '/images/outdoor/Portulaca.webp', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '40', name: 'Bottlebrush', price: 2800, category: 'Outdoor', image: '/images/outdoor/Bottlebrush.jpg', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '41', name: 'Dahlia', price: 2800, category: 'Outdoor', image: '/images/outdoor/Dahlia.avif', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '42', name: 'Chrysanthemum ', price: 2800, category: 'Outdoor', image: '/images/outdoor/Chrysanthemum.jpg', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '43', name: 'Begonia ', price: 2800, category: 'Outdoor', image: '/images/outdoor/Begonia.jfif', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '44', name: 'Geranium ', price: 2800, category: 'Outdoor', image: '/images/outdoor/Geranium.jpg', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '44', name: 'Plumeria (Frangipani)  ', price: 2800, category: 'Outdoor', image: '/images/outdoor/Plumeria.webp', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '45', name: 'Paneer Rose (Pink) ', price: 2800, category: 'Outdoor', image: '/images/outdoor/Paneer.webp', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '46', name: 'Adenium (Desert Rose)  ', price: 2800, category: 'Outdoor', image: '/images/outdoor/Adenium.jpg', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '47', name: 'Magnolia  ', price: 2800, category: 'Outdoor', image: '/images/outdoor/Magnolia.webp', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '48', name: 'FOXTAIL PALM ', price: 2800, category: 'Outdoor', image: '/images/outdoor/foxtail_palm.webp', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '49', name: 'TRAVELLER PALM  ', price: 2800, category: 'Outdoor', image: '/images/outdoor/traveller_palm.webp', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '50', name: 'DATE PALM ', price: 2800, category: 'Outdoor', image: '/images/outdoor/DATE_PALM.jpg', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '51', name: 'ROYAL PALM  ', price: 2800, category: 'Outdoor', image: '/images/outdoor/ROYAL_PALM.jpg', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '52', name: 'RED PALM ', price: 2800, category: 'Outdoor', image: '/images/outdoor/RED_PALM.webp', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '53', name: 'BOTTLE PALM   ', price: 2800, category: 'Outdoor', image: '/images/outdoor/BOTTLE-PALM.webp', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '54', name: 'CLUSTER FIG   ', price: 2800, category: 'Outdoor', image: '/images/outdoor/CLUSTER_FIG.jpg', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '55', name: 'ARJUN ', price: 2800, category: 'Outdoor', image: '/images/outdoor/AONAL.jpg', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '56', name: 'AONAL ', price: 2800, category: 'Outdoor', image: '/images/outdoor/ARJUN.jpg', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '57', name: 'BANYAN  ', price: 2800, category: 'Outdoor', image: '/images/outdoor/BANYAN.jfif', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '58', name: 'EUCALYPTUS  ', price: 2800, category: 'Outdoor', image: '/images/outdoor/EUCALYPTUS.jfif', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '59', name: 'MOHOGANY ', price: 2800, category: 'Outdoor', image: '/images/outdoor/MOHOGANY.jfif', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '60', name: 'TEAK ', price: 2800, category: 'Outdoor', image: '/images/outdoor/TEAK.jfif', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '61', name: 'NEEM ', price: 2800, category: 'Outdoor', image: '/images/outdoor/NEEM.jfif', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '62', name: 'TAMARIND ', price: 2800, category: 'Outdoor', image: '/images/outdoor/TAMARIND.jfif', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '63', name: 'SANDALWOOD RED ', price: 2800, category: 'Outdoor', image: '/images/outdoor/SANDALWOOD_RED.webp', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '64', name: 'BOXWOOD ', price: 2800, category: 'Outdoor', image: '/images/outdoor/BOXWOOD.webp', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '65', name: 'INDIAN ALMOND  ', price: 2800, category: 'Outdoor', image: '/images/outdoor/SANDALWOOD_WHITE.webp', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '66', name: 'ASHOKA  ', price: 2800, category: 'Outdoor', image: '/images/outdoor/DURANTA_GREEN.jpg', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '67', name: 'DURANTA GREEN ', price: 2800, category: 'Outdoor', image: '/images/outdoor/DURANTA_GOLDEN.webp', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '68', name: 'DURANTA GOLDEN ', price: 2800, category: 'Outdoor', image: '/images/outdoor/DURANTA_GOLDEN.webp', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '69', name: 'LEMON ', price: 2800, category: 'Outdoor', image: '/images/outdoor/LEMON.webp', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '70', name: 'JAMUN ', price: 2800, category: 'Outdoor', image: '/images/outdoor/JAMUN.jpg', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '71', name: 'RAIN TREE ', price: 2800, category: 'Outdoor', image: '/images/outdoor/RAIN.jfif', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '72', name: 'JUNIPER ', price: 2800, category: 'Outdoor', image: '/images/outdoor/JUNIPER.webp', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '74', name: 'SONG OF INDIA', price: 2800, category: 'Outdoor', image: '/images/outdoor/SONG_OF_INDIA.jfif', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '75', name: 'OLEANDER ', price: 2800, category: 'Outdoor', image: '/images/outdoor/OLEANDER.webp', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '76', name: 'LANTANA ', price: 2800, category: 'Outdoor', image: '/images/outdoor/LANTANA.webp', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '77', name: 'NEW ZEALAND FLEX', price: 2800, category: 'Outdoor', image: '/images/outdoor/NEW_ZEALAND.webp', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '78', name: 'ELEPHANT EAR ', price: 2800, category: 'Outdoor', image: '/images/outdoor/ELEPHANT.webp', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '78', name: 'LUNGWORT', price: 2800, category: 'Outdoor', image: '/images/outdoor/LUNGWORT.webp', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
-  { id: '78', name: 'LILYT ', price: 2800, category: 'Outdoor', image: '/images/outdoor/LILYTURF.webp', maintenance: 'High', light: 'Direct', description: 'Architectural statement plant. Highly robust, acclimatized to Indian coastal conditions.' },
+type PlantSeed = {
+  name: string;
+  category: string;
+  image: string;
+};
 
-
-
-
+const PLANT_SEEDS: PlantSeed[] = [
+  { name: 'DUSTY MILLER', category: 'Outdoor', image: '/images/shop-attachments/img-081.jpg' },
+  { name: 'ARECA PALM', category: 'Outdoor', image: '/images/shop-attachments/img-031.jpg' },
+  { name: 'YUCCA', category: 'Outdoor', image: '/images/shop-attachments/img-100.jpg' },
+  { name: 'PULMERIA', category: 'Outdoor', image: '/images/shop-attachments/img-083.jpg' },
+  { name: 'CYCAS REVOLUTA', category: 'Outdoor', image: '/images/shop-attachments/img-030.jpg' },
+  { name: 'FICUS PANDA', category: 'Outdoor', image: '/images/shop-attachments/img-066.jpg' },
+  { name: 'THUJA', category: 'Outdoor', image: '/images/shop-attachments/img-097.jpg' },
+  { name: 'GOLDEN SHOWER', category: 'Outdoor', image: '/images/shop-attachments/img-007.jpg' },
+  { name: 'PRIDE OF INDIA', category: 'Outdoor', image: '/images/shop-attachments/img-021.jpg' },
+  { name: 'PERIWINKLE', category: 'Outdoor', image: '/images/shop-attachments/img-043.jpg' },
+  { name: 'MARIGOLD', category: 'Outdoor', image: '/images/shop-attachments/img-065.jpg' },
+  { name: 'ZINNA', category: 'Outdoor', image: '/images/shop-attachments/img-095.jpg' },
+  { name: 'PETUNIA', category: 'Outdoor', image: '/images/shop-attachments/img-098.jpg' },
+  { name: 'CHRYSANTHEMUM', category: 'Outdoor', image: '/images/shop-attachments/img-036.jpg' },
+  { name: 'SNAPDRAGON', category: 'Outdoor', image: '/images/shop-attachments/img-005.jpg' },
+  { name: 'PANSY', category: 'Outdoor', image: '/images/shop-attachments/img-016.jpg' },
+  { name: 'VINCA GREANIUM', category: 'Outdoor', image: '/images/shop-attachments/img-049.jpg' },
+  { name: 'DAHLIA', category: 'Outdoor', image: '/images/shop-attachments/img-063.jpg' },
+  { name: 'BEGONIA', category: 'Outdoor', image: '/images/shop-attachments/img-102.jpg' },
+  { name: 'TECOMA', category: 'Outdoor', image: '/images/outdoor/Tecoma.webp' },
+  { name: 'PANEER ROSE', category: 'Outdoor', image: '/images/shop-attachments/img-079.jpg' },
+  { name: 'JASMINE', category: 'Outdoor', image: '/images/shop-attachments/img-062.jpg' },
+  { name: 'ADENIUM', category: 'Outdoor', image: '/images/shop-attachments/img-087.jpg' },
+  { name: 'PEACE LILLY', category: 'Indoor', image: '/images/shop-attachments/img-076.jpg' },
+  { name: 'KALANCHOE', category: 'Indoor', image: '/images/shop-attachments/img-051.jpg' },
+  { name: 'AFRICAN VIOLET', category: 'Indoor', image: '/images/shop-attachments/img-011.jpg' },
+  { name: 'ORCHID', category: 'Indoor', image: '/images/indoor/Anthurium.jpg' },
+  { name: 'BALSAM', category: 'Outdoor', image: '/images/shop-attachments/img-042.jpg' },
+  { name: 'CROSSANDRA', category: 'Outdoor', image: '/images/shop-attachments/img-080.jpg' },
+  { name: 'CROWN OF THORNS', category: 'Indoor', image: '/images/shop-attachments/img-027.jpg' },
+  { name: 'SNAKE PLANT', category: 'Indoor', image: '/images/shop-attachments/img-091.jpg' },
+  { name: 'MONSTERA', category: 'Indoor', image: '/images/shop-attachments/img-022.jpg' },
+  { name: 'ZZ PLANT', category: 'Indoor', image: '/images/shop-attachments/img-101.jpg' },
+  { name: 'MONEY PLANT', category: 'Indoor', image: '/images/shop-attachments/img-068.jpg' },
+  { name: 'AGLAONEMA', category: 'Indoor', image: '/images/shop-attachments/img-039.jpg' },
+  { name: 'HEARTLEAF', category: 'Indoor', image: '/images/shop-attachments/img-048.jpg' },
+  { name: 'SPIDER PLANT', category: 'Indoor', image: '/images/shop-attachments/img-096.jpg' },
+  { name: 'FIDDLE LEAF FIG', category: 'Indoor', image: '/images/shop-attachments/img-006.jpg' },
+  { name: 'FICUS ELASTICA', category: 'Indoor', image: '/images/shop-attachments/img-103.jpg' },
+  { name: 'CROTON', category: 'Indoor', image: '/images/outdoor/SONG_OF_INDIA.jfif' },
+  { name: 'BIRDS OF PARADISE', category: 'Outdoor', image: '/images/shop-attachments/img-019.jpg' },
+  { name: 'MARANTA', category: 'Indoor', image: '/images/shop-attachments/img-064.jpg' },
+  { name: 'PARLOR PALM', category: 'Indoor', image: '/images/shop-attachments/img-075.jpg' },
+  { name: 'ARALIA', category: 'Indoor', image: '/images/indoor/bamboo-palm.webp' },
+  { name: 'LUCKY BAMBOO', category: 'Indoor', image: '/images/shop-attachments/img-008.jpg' },
+  { name: 'PEPEROMIA', category: 'Indoor', image: '/images/shop-attachments/img-077.jpg' },
+  { name: 'BROMELIADS', category: 'Indoor', image: '/images/shop-attachments/img-024.jpg' },
+  { name: 'TRADESCANTIA', category: 'Indoor', image: '/images/shop-attachments/img-086.jpg' },
+  { name: 'DISCHIDIA', category: 'Indoor', image: '/images/shop-attachments/img-032.jpg' },
+  { name: 'BOSTON FERN', category: 'Indoor', image: '/images/shop-attachments/img-074.jpg' },
+  { name: 'ASPARAGUS FERN', category: 'Indoor', image: '/images/shop-attachments/img-014.jpg' },
+  { name: 'ENGLISH IVY', category: 'Indoor', image: '/images/shop-attachments/img-037.jpg' },
+  { name: 'LIPSTICK PLANT', category: 'Indoor', image: '/images/shop-attachments/img-029.jpg' },
+  { name: 'HOYA', category: 'Indoor', image: '/images/shop-attachments/img-059.jpg' },
+  { name: 'TULASI', category: 'Herbs', image: '/images/shop-attachments/img-058.jpg' },
+  { name: 'MINT', category: 'Herbs', image: '/images/shop-attachments/img-003.jpg' },
+  { name: 'CURRY LEAVES', category: 'Herbs', image: '/images/shop-attachments/img-010.jpg' },
+  { name: 'BASIL', category: 'Herbs', image: '/images/shop-attachments/img-017.jpg' },
+  { name: 'ROSEMARY', category: 'Herbs', image: '/images/shop-attachments/img-071.jpg' },
+  { name: 'THYME', category: 'Herbs', image: '/images/shop-attachments/img-061.jpg' },
+  { name: 'ALOE VERA', category: 'Herbs', image: '/images/shop-attachments/img-012.jpg' },
+  { name: 'LEMONGRASS', category: 'Herbs', image: '/images/shop-attachments/img-052.jpg' },
+  { name: 'PEPPERMINT', category: 'Herbs', image: '/images/shop-attachments/img-002.jpg' },
+  { name: 'KARPORRAVALLI', category: 'Herbs', image: '/images/shop-attachments/img-028.jpg' },
+  { name: 'BETEL LEAF', category: 'Herbs', image: '/images/shop-attachments/img-018.jpg' },
+  { name: 'RANGOON CREEPER', category: 'Creepers', image: '/images/shop-attachments/img-094.jpg' },
+  { name: 'ALLAMANDA CREEPER', category: 'Creepers', image: '/images/shop-attachments/img-033.jpg' },
+  { name: 'GARLIC VINE', category: 'Creepers', image: '/images/shop-attachments/img-105.jpg' },
+  { name: 'RAILWAY CREEPER', category: 'Creepers', image: '/images/shop-attachments/img-084.jpg' },
+  { name: 'ARROWHEAD VINE', category: 'Creepers', image: '/images/shop-attachments/img-004.jpg' },
+  { name: 'AMARANTH', category: 'Vegetables', image: '/images/shop-attachments/img-013.jpg' },
+  { name: 'TOMATO', category: 'Vegetables', image: '/images/shop-attachments/img-045.jpg' },
+  { name: 'BRINJAL', category: 'Vegetables', image: '/images/shop-attachments/img-104.jpg' },
+  { name: 'CHILLI', category: 'Vegetables', image: '/images/shop-attachments/img-046.jpg' },
+  { name: 'BELL PEPPER', category: 'Vegetables', image: '/images/shop-attachments/img-009.jpg' },
+  { name: 'OKRA', category: 'Vegetables', image: '/images/shop-attachments/img-026.jpg' },
+  { name: 'BOTTLE GOURD', category: 'Vegetables', image: '/images/shop-attachments/img-020.jpg' },
+  { name: 'RIDGE GOURD', category: 'Vegetables', image: '/images/shop-attachments/img-073.jpg' },
+  { name: 'PUMPKIN', category: 'Vegetables', image: '/images/shop-attachments/img-055.jpg' },
+  { name: 'SNAKE GOURD', category: 'Vegetables', image: '/images/shop-attachments/img-025.jpg' },
+  { name: 'DRUMSTICK', category: 'Vegetables', image: '/images/shop-attachments/img-053.jpg' },
+  { name: 'CHERRY TOMATO', category: 'Vegetables', image: '/images/shop-attachments/img-045.jpg' },
+  { name: 'BANANA', category: 'Fruits', image: '/images/shop-attachments/img-057.jpg' },
+  { name: 'GUAVA', category: 'Fruits', image: '/images/shop-attachments/img-047.jpg' },
+  { name: 'POMEGRANATE', category: 'Fruits', image: '/images/shop-attachments/img-050.jpg' },
+  { name: 'PAPAYA', category: 'Fruits', image: '/images/shop-attachments/img-067.jpg' },
+  { name: 'SAPOTA', category: 'Fruits', image: '/images/shop-attachments/img-088.jpg' },
+  { name: 'CUSTARD APPLE', category: 'Fruits', image: '/images/shop-attachments/img-099.jpg' },
+  { name: 'STAR FRUIT', category: 'Fruits', image: '/images/shop-attachments/img-092.jpg' },
+  { name: 'MULBERRY', category: 'Fruits', image: '/images/shop-attachments/img-054.jpg' },
+  { name: 'STRAWBERRY', category: 'Fruits', image: '/images/shop-attachments/img-056.jpg' },
+  { name: 'SWEET LIME', category: 'Fruits', image: '/images/shop-attachments/img-038.jpg' },
+  { name: 'RAMBUTAN', category: 'Fruits', image: '/images/shop-attachments/img-093.jpg' },
+  { name: 'SWEET ORANGE', category: 'Fruits', image: '/images/shop-attachments/img-089.jpg' },
+  { name: 'GOLDEN BARREL CACTUS', category: 'Cactus & Succulent', image: '/images/shop-attachments/img-035.jpg' },
+  { name: 'BUNNY EAR CACTUS', category: 'Cactus & Succulent', image: '/images/shop-attachments/img-072.jpg' },
+  { name: 'CHRISTMAS CACTUS', category: 'Cactus & Succulent', image: '/images/shop-attachments/img-041.jpg' },
+  { name: 'BISHOP\'S CAP CACTUS', category: 'Cactus & Succulent', image: '/images/shop-attachments/img-015.jpg' },
+  { name: 'FISHHOOK CACTUS', category: 'Cactus & Succulent', image: '/images/shop-attachments/img-040.jpg' },
+  { name: 'TOTEM POLE CACTUS', category: 'Cactus & Succulent', image: '/images/shop-attachments/img-090.jpg' },
+  { name: 'EASTER CACTUS', category: 'Cactus & Succulent', image: '/images/shop-attachments/img-078.jpg' },
+  { name: 'HEDGEHOG CACTUS', category: 'Cactus & Succulent', image: '/images/shop-attachments/img-023.jpg' },
+  { name: 'MOON CACTUS', category: 'Cactus & Succulent', image: '/images/shop-attachments/img-069.jpg' },
+  { name: 'PERUVIAN APPLE CACTUS', category: 'Cactus & Succulent', image: '/images/shop-attachments/img-060.jpg' },
+  { name: 'PRICKLY PEAR CACTUS', category: 'Cactus & Succulent', image: '/images/shop-attachments/img-085.jpg' },
+  { name: 'STRINGS OF PEARLS', category: 'Cactus & Succulent', image: '/images/shop-attachments/img-070.jpg' },
+  { name: 'HAWORTHIA ZEBRA', category: 'Cactus & Succulent', image: '/images/shop-attachments/img-001.jpg' },
+  { name: 'MINI ECHEVERIA VARIETIES', category: 'Cactus & Succulent', image: '/images/shop-attachments/img-034.jpg' },
+  { name: 'JADE PLANT', category: 'Cactus & Succulent', image: '/images/shop-attachments/img-082.jpg' },
+  { name: 'GASTERIA', category: 'Cactus & Succulent', image: '/images/shop-attachments/img-044.jpg' },
 ];
+
+const CATEGORY_PROFILE: Record<
+  string,
+  { basePrice: number; maintenance: Product['maintenance']; light: Product['light'] }
+> = {
+  Indoor: { basePrice: 899, maintenance: 'Medium', light: 'Indirect' },
+  Outdoor: { basePrice: 799, maintenance: 'Medium', light: 'Direct' },
+  Herbs: { basePrice: 249, maintenance: 'Low', light: 'Direct' },
+  Creepers: { basePrice: 449, maintenance: 'Medium', light: 'Direct' },
+  Vegetables: { basePrice: 349, maintenance: 'Medium', light: 'Direct' },
+  Fruits: { basePrice: 699, maintenance: 'Medium', light: 'Direct' },
+  'Cactus & Succulent': { basePrice: 499, maintenance: 'Low', light: 'Direct' },
+};
+
+const DEFAULT_PROFILE = CATEGORY_PROFILE.Outdoor;
+
+const MOCK_PRODUCTS: Product[] = PLANT_SEEDS.map((plant, index) => {
+  const profile = CATEGORY_PROFILE[plant.category] ?? DEFAULT_PROFILE;
+  return {
+    id: String(index + 1),
+    name: plant.name,
+    category: plant.category,
+    image: plant.image,
+    price: profile.basePrice + (index % 4) * 60,
+    maintenance: profile.maintenance,
+    light: profile.light,
+    description:
+      plant.name +
+      ' healthy nursery plant, acclimatized and ready for home gardens and balcony spaces.',
+  };
+});
+
+const formatCurrency = (amount: number): string =>
+  new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0,
+  }).format(amount);
 
 interface ShopProps {
   addToCart: (product: Product) => void;
@@ -107,68 +165,98 @@ interface ShopProps {
 
 const Shop: React.FC<ShopProps> = ({ addToCart }) => {
   const [filter, setFilter] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredProducts = filter === 'All'
-    ? MOCK_PRODUCTS
-    : MOCK_PRODUCTS.filter(p => p.category === filter);
+  const categories = useMemo(
+    () => ['All', ...Array.from(new Set(MOCK_PRODUCTS.map((product) => product.category)))],
+    [],
+  );
+
+  const filteredProducts = MOCK_PRODUCTS.filter((product) => {
+    const categoryMatch = filter === 'All' || product.category === filter;
+    const query = searchQuery.trim().toLowerCase();
+    const searchMatch = query.length === 0 || product.name.toLowerCase().includes(query);
+    return categoryMatch && searchMatch;
+  });
 
   return (
     <div className="bg-white min-h-screen">
-      {/* Search & Categories Bar */}
       <div className="border-b bg-gray-50/50 sticky top-20 z-40 px-4 py-4">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-4 items-center justify-between">
           <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 no-scrollbar">
-            {['All', 'Indoor', 'Outdoor', 'Landscape', 'Exotic'].map(cat => (
+            {categories.map((category) => (
               <button
-                key={cat}
-                onClick={() => setFilter(cat)}
-                className={`px-6 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all ${filter === cat ? 'bg-green-700 text-white shadow-md' : 'bg-white text-gray-600 hover:border-green-200 border border-gray-100'}`}
+                key={category}
+                onClick={() => setFilter(category)}
+                className={
+                  'px-6 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all ' +
+                  (filter === category
+                    ? 'bg-green-700 text-white shadow-md'
+                    : 'bg-white text-gray-600 hover:border-green-200 border border-gray-100')
+                }
               >
-                {cat}
+                {category}
               </button>
             ))}
           </div>
-          <div className="flex items-center gap-4 w-full md:w-auto">
-            <div className="relative flex-grow md:w-64">
-              <input type="text" placeholder="Search plants..." className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-600 bg-white" />
-              <Filter className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
-            </div>
+
+          <div className="relative flex-grow md:w-72 w-full">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Search plants..."
+              className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-600 bg-white"
+            />
+            <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
           </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-12">
+        <div className="text-sm text-gray-500 mb-6">Showing {filteredProducts.length} plants</div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-          {filteredProducts.map(product => (
+          {filteredProducts.map((product) => (
             <div key={product.id} className="group cursor-pointer">
               <div className="relative aspect-[4/5] rounded-3xl overflow-hidden bg-gray-100 mb-4">
-                <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                <img
+                  src={product.image}
+                  alt={product.name}
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                />
                 <div className="absolute top-4 left-4 flex gap-2">
-                  <span className="bg-white/90 backdrop-blur px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest">{product.maintenance} Care</span>
+                  <span className="bg-white/90 backdrop-blur px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest">
+                    {product.maintenance} Care
+                  </span>
                 </div>
                 <button
-                  onClick={(e) => { e.stopPropagation(); addToCart(product); }}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    addToCart(product);
+                  }}
                   className="absolute bottom-4 right-4 bg-white p-4 rounded-2xl shadow-xl translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 hover:bg-green-700 hover:text-white"
                 >
                   <ShoppingBag className="w-5 h-5" />
                 </button>
               </div>
+
               <div className="space-y-1">
-                <div className="flex justify-between items-start">
-                  <h3 className="text-lg font-bold text-gray-900">{product.name}</h3>
+                <div className="flex justify-between items-start gap-3">
+                  <h3 className="text-lg font-bold text-gray-900 leading-tight">{product.name}</h3>
                   <div className="flex items-center text-xs font-bold text-yellow-600 bg-yellow-50 px-2 py-0.5 rounded">
                     <Star className="w-3 h-3 fill-current mr-1" /> 4.9
                   </div>
                 </div>
+                <p className="text-xs text-green-700 font-semibold">{product.category}</p>
                 <p className="text-sm text-gray-500 line-clamp-2">{product.description}</p>
-                <div className="text-lg font-bold text-green-700 pt-2">₹{product.price.toLocaleString()}</div>
+                <div className="text-lg font-bold text-green-700 pt-2">{formatCurrency(product.price)}</div>
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Trust Banner */}
       <section className="bg-gray-50 border-t mt-20 py-16">
         <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-12 text-center">
           <div className="flex flex-col items-center">
