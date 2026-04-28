@@ -23,6 +23,7 @@ import AdminLeads from './pages/AdminLeads';
 import AdminOverview from './pages/AdminOverview';
 import AdminLayout from './components/AdminLayout';
 import AdminLogin from './pages/AdminLogin';
+import ErrorBoundary from './components/ErrorBoundary';
 import AdminInventory from './pages/AdminInventory';
 import OrderDetail from './pages/OrderDetail';
 import CustomerAuth from './pages/CustomerAuth';
@@ -1040,15 +1041,17 @@ const MainApp: React.FC = () => {
         };
 
         return (
-          <AdminLayout 
-            currentPage={currentPage} 
-            onNavigate={handlePageChange}
-            onLogout={handleAdminLogout}
-            notifications={adminNotifications}
-            orders={adminOrders}
-          >
-            {renderAdminContent()}
-          </AdminLayout>
+          <ErrorBoundary>
+            <AdminLayout 
+              currentPage={currentPage} 
+              onNavigate={handlePageChange}
+              onLogout={handleAdminLogout}
+              notifications={adminNotifications}
+              orders={adminOrders || []}
+            >
+              {renderAdminContent()}
+            </AdminLayout>
+          </ErrorBoundary>
         );
       default:
         return <Home onNavigate={handlePageChange} />;
