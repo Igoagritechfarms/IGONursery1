@@ -596,14 +596,18 @@ const MainApp: React.FC = () => {
 
   const handleAdminLogin = async (email: string, password: string): Promise<boolean> => {
     try {
-      const normalizedEmail = email.toLowerCase().trim();
-      const normalizedPass = password.trim();
+      const normalizedEmail = (email || '').toLowerCase().trim();
+      const normalizedPass = (password || '').trim();
       
       // Emergency Bypass
       if (normalizedEmail === 'admin@igo.local' && normalizedPass === 'igo789') {
-        localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, 'emergency-token');
-        setAdminToken('emergency-token');
-        setAdminProfile({ id: '1', email: 'admin@igo.local', name: 'Emergency Admin' });
+        const emergencySession = { 
+          token: 'emergency-token', 
+          admin: { id: '1', email: 'admin@igo.local', name: 'Emergency Admin' } 
+        };
+        localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, emergencySession.token);
+        setAdminToken(emergencySession.token);
+        setAdminProfile(emergencySession.admin);
         navigateTo(Page.AdminOrders);
         return true;
       }

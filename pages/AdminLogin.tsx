@@ -37,7 +37,7 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ defaultEmail, onLogin }) => {
                <img src="/images/branding/igo-agritechfarms-logo.png" alt="Logo" className="h-16 brightness-0 invert" />
             </div>
             <h1 className="text-4xl md:text-6xl font-black tracking-tighter leading-none mb-6">
-              ADMIN <br/> <span className="text-igo-lime">PORTAL V2.</span>
+              ADMIN <br/> <span className="text-igo-lime">ECOSYSTEM.</span>
             </h1>
             <p className="text-gray-300 text-lg font-medium leading-relaxed max-w-sm">
               Secure enterprise access for IGO Nursery regional managers and agronomists.
