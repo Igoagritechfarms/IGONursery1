@@ -111,8 +111,15 @@ export const customerApi = {
       body: JSON.stringify(data),
     });
     if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData.message || 'Signup failed');
+      let message = 'Signup failed';
+      try {
+        const errorData = await res.json();
+        message = errorData.message || message;
+      } catch (e) {
+        // Handle non-JSON errors (e.g. 404, 405, 500)
+        message = `Server error ${res.status}: ${res.statusText || 'Unexpected response'}`;
+      }
+      throw new Error(message);
     }
     return res.json();
   },
@@ -124,8 +131,14 @@ export const customerApi = {
       body: JSON.stringify(data),
     });
     if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData.message || 'Verification failed');
+      let message = 'Verification failed';
+      try {
+        const errorData = await res.json();
+        message = errorData.message || message;
+      } catch (e) {
+        message = `Server error ${res.status}: ${res.statusText || 'Unexpected response'}`;
+      }
+      throw new Error(message);
     }
     const result = await res.json();
     if (result.token) {
@@ -141,8 +154,14 @@ export const customerApi = {
       body: JSON.stringify(credentials),
     });
     if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData.message || 'Login failed');
+      let message = 'Login failed';
+      try {
+        const errorData = await res.json();
+        message = errorData.message || message;
+      } catch (e) {
+        message = `Server error ${res.status}: ${res.statusText || 'Unexpected response'}`;
+      }
+      throw new Error(message);
     }
     const data = await res.json();
     if (data.token) {
