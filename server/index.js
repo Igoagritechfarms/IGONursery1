@@ -468,15 +468,17 @@ const server = http.createServer(async (request, response) => {
       const body = await readJsonBody(request);
       if (body.email) body.email = body.email.trim().toLowerCase();
       if (body.password) body.password = body.password.trim();
-      console.log('👤 Staged Signup Request:', { email: body.email, name: body.name });
+      console.log('👤 Staged Signup Request:', JSON.stringify(body, null, 2));
       
       if (!body.email || !body.password || !body.name) {
+        console.log('❌ Signup rejected: Missing required fields');
         sendJson(response, 400, { message: 'Email, name and password are required.' });
         return;
       }
 
       // Pre-check if email already verified/exists
       if (findCustomerByEmail(body.email)) {
+        console.log(`❌ Signup rejected: Customer ${body.email} already exists`);
         sendJson(response, 400, { message: 'Customer with this email already exists.' });
         return;
       }
@@ -485,6 +487,7 @@ const server = http.createServer(async (request, response) => {
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         const expires = new Date(Date.now() + 15 * 60000).toISOString();
         
+        console.log(`📝 Creating pending verification for ${body.email}...`);
         createPendingVerification(body.email, 'signup', body, otp, expires);
         
         console.log('\n' + '*'.repeat(40));
@@ -493,20 +496,21 @@ const server = http.createServer(async (request, response) => {
         
         if (mailTransporter) {
           try {
+            console.log(`✉️ Attempting to send signup OTP to ${body.email}...`);
             await mailTransporter.sendMail({
               from: `"IGO Nursery" <${SMTP_USER || 'orders@igo.local'}>`,
               to: body.email,
               subject: '🌿 Verify Your IGO Nursery Account',
-              html: `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f1f8f4;font-family:'Segoe UI',Arial,sans-serif;"><table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:24px 0;"><table width="520" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);"><tr><td style="background:linear-gradient(135deg,#1b5e20,#2d7a3a);padding:32px 40px;text-align:center;"><div style="margin-bottom:12px;"><img src="cid:logo" alt="Logo" width="70" height="70" style="border-radius:12px;background:#fff;border:3px solid rgba(255,255,255,0.2);" /></div><div style="color:#fff;font-size:22px;font-weight:900;text-transform:uppercase;">IGO Nursery</div></td></tr><tr><td style="padding:36px 40px;"><h2 style="color:#1b5e20;margin:0 0 12px;font-size:20px;">Verify Your Account</h2><p style="color:#555;line-height:1.7;font-size:15px;">Hello <b>${body.name}</b>,<br><br>Welcome to IGO Nursery! Use the code below to verify your account and start your green journey.</p><div style="text-align:center;margin:28px 0;"><div style="display:inline-block;background:#e8f5e9;border:2px dashed #2d7a3a;border-radius:12px;padding:16px 40px;"><div style="font-size:36px;font-weight:900;letter-spacing:12px;color:#1b5e20;">${otp}</div></div></div><p style="color:#888;font-size:13px;text-align:center;">This code expires in 15 minutes.</p><hr style="border:none;border-top:1px solid #e0f2e9;margin:24px 0;"><p style="color:#aaa;font-size:12px;text-align:center;">If you didn't sign up, you can safely ignore this email.</p></td></tr></table></td></tr></table></body></html>`,
+              html: `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f1f8f4;font-family:'Segoe UI',Arial,sans-serif;"><table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:24px 0;"><table width="520" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);"><tr><td style="background:linear-gradient(135deg,#1b5e20,#2d7a3a);padding:32px 40px;text-align:center;"><div style="margin-bottom:12px;"><img src="cid:logo" alt="Logo" width="70" height="70" style="border-radius:12px;background:#fff;border:3px solid rgba(255,255,255,0.2);" /></div><div style="color:#fff;font-size:22px;font-weight:900;text-transform:uppercase;">IGO Nursery</div></td></tr><tr><td style="padding:36px 40px;"><h2 style="color:#1b5e20;margin:0 0 12px;font-size:20px;">Verify Your Account</h2><p style="color:#555;line-height:1.7;font-size:15px;">Hello <b>${body.name}</b>,<br><br>Welcome to IGO Nursery! Use the code below to verify your account and start your green journey.</p><div style="text-align:center;margin:28px 0;"><div style="display:inline-block;background:#e8f5e9;border:2px dashed #2d7a3a;border-radius:12px;padding:16px 400px;"><div style="font-size:36px;font-weight:900;letter-spacing:12px;color:#1b5e20;">${otp}</div></div></div><p style="color:#888;font-size:13px;text-align:center;">This code expires in 15 minutes.</p><hr style="border:none;border-top:1px solid #e0f2e9;margin:24px 0;"><p style="color:#aaa;font-size:12px;text-align:center;">If you didn't sign up, you can safely ignore this email.</p></td></tr></table></td></tr></table></body></html>`,
               attachments: [LOGO_ATTACHMENT]
             });
-            console.log(`✉️ Signup OTP sent to ${body.email}`);
+            console.log(`✅ Signup OTP sent to ${body.email}`);
           } catch (mailErr) {
             console.error('❌ Failed to send signup email:', mailErr);
-            // We still proceed if it's a test environment or if we want them to see the OTP in console
           }
         }
         
+        console.log(`✅ Signup initialization complete for ${body.email}`);
         sendJson(response, 200, { success: true, needsVerification: true, email: body.email });
       } catch (err) {
         console.error('❌ Staged signup error:', err);
