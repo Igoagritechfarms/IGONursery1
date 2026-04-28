@@ -209,6 +209,15 @@ const parseLocationToRoute = (): ParsedRoute => {
     };
   }
 
+  if (first === 'admin-overview') {
+    return {
+      page: Page.AdminOverview,
+      productSlug: null,
+      knowledgeArticleId: null,
+      canonicalPath: '/admin-overview',
+    };
+  }
+
   if (first === 'admin-leads') {
     return {
       page: Page.AdminLeads,
@@ -412,7 +421,7 @@ const App: React.FC = () => {
     if (normalizedEmail === 'admin@igo.local' && normalizedPass === 'Admin@123') {
       setIsAdmin(true);
       localStorage.setItem('isAdmin', 'true');
-      navigateTo('/admin-overview');
+      navigateTo('/admin-orders');
       return true;
     }
     return false;
