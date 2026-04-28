@@ -596,7 +596,9 @@ const MainApp: React.FC = () => {
 
   const handleAdminLogin = async (email: string, password: string): Promise<boolean> => {
     try {
-      const session = await adminLogin(email, password);
+      const normalizedEmail = email.toLowerCase().trim();
+      const normalizedPass = password.trim();
+      const session = await adminLogin(normalizedEmail, normalizedPass);
       localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, session.token);
       setAdminToken(session.token);
       setAdminProfile(session.admin);

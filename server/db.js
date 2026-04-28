@@ -299,19 +299,29 @@ const markNotificationReadStatement = db.prepare(`
 
 
 const seedAdmin = () => {
+  const salt = createSalt();
+  const passwordHash = hashPassword(ADMIN_PASSWORD, salt);
+
   const existingAdmin = selectAdminByEmailStatement.get(ADMIN_EMAIL);
   if (existingAdmin) {
+    // Force update the password to match config.js
+    db.prepare('UPDATE admins SET password_hash = ?, password_salt = ? WHERE id = ?').run(
+      passwordHash,
+      salt,
+      existingAdmin.id
+    );
+    console.log(`🔐 Admin password synchronized for ${ADMIN_EMAIL}`);
     return;
   }
 
-  const salt = createSalt();
   insertAdminStatement.run(
     ADMIN_EMAIL,
     'IGO Admin',
-    hashPassword(ADMIN_PASSWORD, salt),
+    passwordHash,
     salt,
     new Date().toISOString(),
   );
+  console.log(`✅ Admin account created with password from config.js`);
 };
 
 seedAdmin();
