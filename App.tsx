@@ -260,6 +260,11 @@ const parseLocationToRoute = (): ParsedRoute => {
     [Page.About]: Page.About,
     [Page.Account]: Page.Account,
     [Page.AdminLogin]: Page.AdminLogin,
+    [Page.CustomerAuth]: Page.CustomerAuth,
+    [Page.CustomerProfile]: Page.CustomerProfile,
+    [Page.AdminProfile]: Page.AdminProfile,
+    [Page.AdminNotifications]: Page.AdminNotifications,
+    [Page.MailHub]: Page.MailHub,
   };
 
   const matchedPage = staticRoutes[first];
@@ -436,7 +441,11 @@ const App: React.FC = () => {
   const handleCustomerLogin = (session: any) => {
     setCustomer(session.customer);
     fetchCustomerData();
-    navigateTo('/customer-profile');
+    if (cartItems.length > 0) {
+      navigateTo('/checkout');
+    } else {
+      navigateTo('/customer-profile');
+    }
   };
 
   const handleDeleteCustomer = (customerId: number | string) => {
@@ -515,7 +524,11 @@ const App: React.FC = () => {
   };
 
   const handleCheckout = () => {
-    navigateTo(buildPath(Page.Checkout));
+    if (customer) {
+      navigateTo(buildPath(Page.Checkout));
+    } else {
+      navigateTo(buildPath(Page.CustomerAuth));
+    }
   };
 
   const handleSubmitOrder = async (orderData: OrderData) => {
@@ -697,6 +710,14 @@ const App: React.FC = () => {
           />
         );
       case Page.Checkout:
+        if (!customer) {
+          return (
+            <CustomerAuth
+              onLogin={handleCustomerLogin}
+              onSignup={() => navigateTo('/customer-auth')}
+            />
+          );
+        }
         return (
           <Checkout
             items={cartItems}

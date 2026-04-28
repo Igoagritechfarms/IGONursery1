@@ -189,12 +189,12 @@ const parseLocationToRoute = (): ParsedRoute => {
       page: Page.OrderConfirmation,
       primaryParam: second ?? null,
       canonicalPath: buildPath(Page.OrderConfirmation, second ?? null),
-      };
-    }
-    if (first === 'track-order') {
-      return { page: Page.OrderTracker, primaryParam: null, canonicalPath: '/track-order' };
-    }
-    if (first === 'admin') {
+    };
+  }
+  if (first === 'track-order') {
+    return { page: Page.OrderTracker, primaryParam: null, canonicalPath: '/track-order' };
+  }
+  if (first === 'admin') {
     if (second === 'orders') {
       return {
         page: Page.AdminOrders,
@@ -385,7 +385,7 @@ const MainApp: React.FC = () => {
       customerApi.getOrders()
         .then(res => setCustomerOrders(res.orders))
         .catch(err => console.error('Orders load failed:', err));
-        
+
       customerApi.getNotifications(customer?.email)
         .then(res => {
           setNotifications(res.notifications);
@@ -431,23 +431,23 @@ const MainApp: React.FC = () => {
         const customerSession = await customerApi.getSession().catch(() => null);
         if (customerSession) {
           setCustomer(customerSession.customer);
-          await loadCustomerData().catch(() => {});
+          await loadCustomerData().catch(() => { });
         }
 
         // 3. Admin Auth
         const storedToken = localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY);
         if (storedToken) {
-           try {
-             const session = await getAdminSession(storedToken);
-             setAdminToken(session.token);
-             setAdminProfile(session.admin);
-             await loadAdminOrders(session.token).catch(() => {});
-           } catch (error) {
-             console.error('Admin session expired.', error);
-             localStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY);
-             setAdminToken(null);
-             setAdminProfile(null);
-           }
+          try {
+            const session = await getAdminSession(storedToken);
+            setAdminToken(session.token);
+            setAdminProfile(session.admin);
+            await loadAdminOrders(session.token).catch(() => { });
+          } catch (error) {
+            console.error('Admin session expired.', error);
+            localStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY);
+            setAdminToken(null);
+            setAdminProfile(null);
+          }
         }
       } catch (error) {
         console.error('Bootstrap failure:', error);
@@ -492,10 +492,10 @@ const MainApp: React.FC = () => {
         leads.forEach((l: any) => {
           const prev = lastLeads.find((p: any) => p.id === l.id);
           if (l.status === 'new' && (!prev || prev.status !== 'new')) {
-             setActiveToast({ 
-               message: `REPLY: ${l.customerName} sent a message regarding ${l.type}`, 
-               type: 'shipped' 
-             });
+            setActiveToast({
+              message: `REPLY: ${l.customerName} sent a message regarding ${l.type}`,
+              type: 'shipped'
+            });
           }
         });
         localStorage.setItem('igo_leads_snapshot', JSON.stringify(leads));
@@ -517,29 +517,29 @@ const MainApp: React.FC = () => {
             const localNotifs = JSON.parse(localStorage.getItem('igo_notifications') || '[]');
             const userEmail = customer?.email;
             if (!userEmail) return; // Don't show notifications if not logged in
-            
+
             const filtered = localNotifs.filter((n: any) => n.customerEmail === userEmail);
-            
+
             // Optimistic update
             setNotifications(prev => {
-                const merged = [...prev];
-                filtered.forEach((fn: any) => {
-                    if (!merged.find(mn => mn.id === fn.id)) merged.push(fn);
-                });
-                return merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+              const merged = [...prev];
+              filtered.forEach((fn: any) => {
+                if (!merged.find(mn => mn.id === fn.id)) merged.push(fn);
+              });
+              return merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
             });
-            
+
             // Trigger Toast for newest notification if unread
             const latest = filtered[0];
             if (latest && !latest.isRead) {
-                setActiveToast({
-                    message: `NOTIFICATION: ${latest.title} - ${latest.message.substring(0, 40)}...`,
-                    type: 'shipped'
-                });
+              setActiveToast({
+                message: `NOTIFICATION: ${latest.title} - ${latest.message.substring(0, 40)}...`,
+                type: 'shipped'
+              });
             }
-          } catch (err) {}
+          } catch (err) { }
         }
-        
+
         // Full sync as backup/refinement
         void loadCustomerData();
       }
@@ -549,7 +549,7 @@ const MainApp: React.FC = () => {
     const interval = setInterval(async () => {
       await loadCustomerData();
     }, 10000); // Poll every 10s as backup
-    
+
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       clearInterval(interval);
@@ -565,13 +565,13 @@ const MainApp: React.FC = () => {
       navigateTo(Page.AdminLogin);
     }
   }, [currentPage, isAdmin, isBootstrapping]);
-  
+
   // Real-time Lead Notifications for Admin
   useEffect(() => {
     if (!isAdmin) return;
-    
+
     let lastLeadsCount = JSON.parse(localStorage.getItem('igo_leads') || '[]').length;
-    
+
     const checkLeads = () => {
       const currentLeads = JSON.parse(localStorage.getItem('igo_leads') || '[]');
       if (currentLeads.length > lastLeadsCount) {
@@ -588,7 +588,7 @@ const MainApp: React.FC = () => {
     window.addEventListener('storage', (e) => {
       if (e.key === 'igo_leads') checkLeads();
     });
-    
+
     return () => {
       clearInterval(interval);
       window.removeEventListener('storage', checkLeads as any);
@@ -599,12 +599,12 @@ const MainApp: React.FC = () => {
     try {
       const normalizedEmail = (email || '').toLowerCase().trim();
       const normalizedPass = (password || '').trim();
-      
+
       // Emergency Bypass
       if (normalizedEmail === 'admin@igo.local' && normalizedPass === 'igo789') {
-        const emergencySession = { 
-          token: 'emergency-token', 
-          admin: { id: '1', email: 'admin@igo.local', name: 'Emergency Admin' } 
+        const emergencySession = {
+          token: 'emergency-token',
+          admin: { id: '1', email: 'admin@igo.local', name: 'Emergency Admin' }
         };
         localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, emergencySession.token);
         setAdminToken(emergencySession.token);
@@ -645,7 +645,11 @@ const MainApp: React.FC = () => {
   const handleCustomerLogin = (session: any) => {
     setCustomer(session.customer);
     loadCustomerData();
-    navigateTo(Page.CustomerProfile);
+    if (cartItems.length > 0) {
+      navigateTo(Page.Checkout);
+    } else {
+      navigateTo(Page.CustomerProfile);
+    }
   };
 
   const handleCustomerLogout = async () => {
@@ -717,7 +721,7 @@ const MainApp: React.FC = () => {
   const handleSubmitOrder = async (orderData: OrderData) => {
     try {
       const payload = createOrderPayload(orderData, cartItems, customer?.id);
-      
+
       // Create a local order object from the payload to show immediately
       const localOrder: Order = {
         ...payload,
@@ -768,9 +772,9 @@ const MainApp: React.FC = () => {
       if (isAdmin) {
         setAdminOrders((prev) => [localOrder, ...prev]);
       }
-      
+
       setCartItems([]);
-      
+
       // 4. Real-time Toast Feedback
       setActiveToast({
         message: `Project #${localOrder.orderNumber} initiated. Details sent to your inbox.`,
@@ -796,7 +800,7 @@ const MainApp: React.FC = () => {
 
     try {
       const response = await updateAdminOrderStatus(adminToken, orderToUpdate.orderNumber, status);
-      
+
       if (status === 'shipped') {
         try {
           await sendOrderShippedEmail({
@@ -924,13 +928,23 @@ const MainApp: React.FC = () => {
             onDecrease={handleDecreaseQuantity}
             onRemove={handleRemoveFromCart}
             onContinueShopping={() => navigateTo(Page.Shop)}
-            onCheckout={() => navigateTo(Page.Checkout)}
+            onCheckout={() => {
+              if (customer) {
+                navigateTo(Page.Checkout);
+              } else {
+                navigateTo(Page.CustomerAuth);
+              }
+            }}
           />
         );
       case Page.Checkout:
         if (!customer) {
-          navigateTo(Page.Account);
-          return null;
+          return (
+            <CustomerAuth
+              onLogin={handleCustomerLogin}
+              onSignup={() => window.scrollTo(0, 0)}
+            />
+          );
         }
         return <Checkout items={cartItems} onBack={() => navigateTo(Page.Cart)} onSubmitOrder={handleSubmitOrder} />;
       case Page.Orders:
@@ -965,9 +979,9 @@ const MainApp: React.FC = () => {
       case Page.CustomerProfile:
         if (!customer) {
           return (
-            <CustomerAuth 
-              onLogin={handleCustomerLogin} 
-              onSignup={() => window.scrollTo(0, 0)} 
+            <CustomerAuth
+              onLogin={handleCustomerLogin}
+              onSignup={() => window.scrollTo(0, 0)}
             />
           );
         }
@@ -994,7 +1008,7 @@ const MainApp: React.FC = () => {
         return <OrderTracker />;
       case Page.AdminLogin:
         return <AdminLogin defaultEmail={adminProfile?.email ?? DEFAULT_ADMIN_EMAIL} onLogin={handleAdminLogin} />;
-      
+
       case Page.AdminOrders:
       case Page.AdminLeads:
       case Page.AdminOverview:
@@ -1026,15 +1040,15 @@ const MainApp: React.FC = () => {
               return <AdminLeads onNavigate={handlePageChange} leadId={routeParam} />;
             }
             if (currentPage === Page.AddProduct) {
-               return <AddProduct onSubmitProduct={handleSubmitProduct} onCancel={() => navigateTo(Page.Shop)} />;
+              return <AddProduct onSubmitProduct={handleSubmitProduct} onCancel={() => navigateTo(Page.Shop)} />;
             }
             return <AdminOverview />;
           };
 
           return (
             <ErrorBoundary>
-              <AdminLayout 
-                currentPage={currentPage} 
+              <AdminLayout
+                currentPage={currentPage}
                 onNavigate={handlePageChange}
                 onLogout={handleAdminLogout}
                 notifications={adminNotifications || []}
