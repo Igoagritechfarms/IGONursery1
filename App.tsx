@@ -406,7 +406,10 @@ const App: React.FC = () => {
   };
 
   const handleAdminLogin = async (email: string, pass: string) => {
-    if (email === 'admin@igo.local' && pass === 'Admin@123') {
+    const normalizedEmail = email.toLowerCase().trim();
+    const normalizedPass = pass.trim();
+
+    if (normalizedEmail === 'admin@igo.local' && normalizedPass === 'Admin@123') {
       setIsAdmin(true);
       localStorage.setItem('isAdmin', 'true');
       navigateTo('/admin-overview');
