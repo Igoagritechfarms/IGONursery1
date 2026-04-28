@@ -251,6 +251,24 @@ const parseLocationToRoute = (): ParsedRoute => {
     };
   }
 
+  if (first === 'customer-auth' || first === 'login' || first === 'auth') {
+    return {
+      page: Page.CustomerAuth,
+      productSlug: null,
+      knowledgeArticleId: null,
+      canonicalPath: '/customer-auth',
+    };
+  }
+
+  if (first === 'customer-profile' || first === 'account' || first === 'profile') {
+    return {
+      page: Page.CustomerProfile,
+      productSlug: null,
+      knowledgeArticleId: null,
+      canonicalPath: '/customer-profile',
+    };
+  }
+
   const staticRoutes: Record<string, Page> = {
     [Page.Assistant]: Page.Assistant,
     [Page.Landscape]: Page.Landscape,
@@ -258,7 +276,7 @@ const parseLocationToRoute = (): ParsedRoute => {
     [Page.Lab]: Page.Lab,
     [Page.Visit]: Page.Visit,
     [Page.About]: Page.About,
-    [Page.Account]: Page.Account,
+    [Page.Account]: Page.CustomerAuth,
     [Page.AdminLogin]: Page.AdminLogin,
     [Page.CustomerAuth]: Page.CustomerAuth,
     [Page.CustomerProfile]: Page.CustomerProfile,
@@ -751,6 +769,7 @@ const App: React.FC = () => {
             onOpenOrder={handleOpenOrder}
           />
         );
+      case Page.Account:
       case Page.CustomerAuth:
         return (
           <CustomerAuth 
