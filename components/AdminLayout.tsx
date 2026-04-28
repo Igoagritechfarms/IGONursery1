@@ -67,15 +67,15 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
     const leads = JSON.parse(localStorage.getItem('igo_leads') || '[]');
     
     const matchedLeads = leads.filter((l: any) => 
-      l.customerName.toLowerCase().includes(query) || 
-      l.customerEmail.toLowerCase().includes(query) ||
-      l.id.toLowerCase().includes(query)
+      (l.customerName || '').toLowerCase().includes(query) || 
+      (l.customerEmail || '').toLowerCase().includes(query) ||
+      (l.id || '').toString().toLowerCase().includes(query)
     );
 
     const matchedOrders = orders.filter((o) => 
-      o.customerName.toLowerCase().includes(query) || 
-      o.customerEmail.toLowerCase().includes(query) ||
-      o.orderNumber.toLowerCase().includes(query)
+      (o.customerName || '').toLowerCase().includes(query) || 
+      (o.customerEmail || '').toLowerCase().includes(query) ||
+      (o.orderNumber || '').toLowerCase().includes(query)
     );
 
     // Group by email to create a "Customer Profile" result

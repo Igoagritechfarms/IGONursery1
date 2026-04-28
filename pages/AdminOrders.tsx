@@ -37,10 +37,10 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({
     const cleanSearchTerm = searchTerm.trim().toLowerCase();
     return orders.filter((order) => {
       const matchesSearch =
-        order.orderNumber.toLowerCase().includes(cleanSearchTerm) ||
-        order.customerName.toLowerCase().includes(cleanSearchTerm) ||
-        order.customerEmail.toLowerCase().includes(cleanSearchTerm) ||
-        order.customerPhone.toLowerCase().includes(cleanSearchTerm);
+        (order.orderNumber || '').toLowerCase().includes(cleanSearchTerm) ||
+        (order.customerName || '').toLowerCase().includes(cleanSearchTerm) ||
+        (order.customerEmail || '').toLowerCase().includes(cleanSearchTerm) ||
+        (order.customerPhone || '').toLowerCase().includes(cleanSearchTerm);
 
       const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
 
@@ -69,7 +69,9 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({
     >();
 
     orders.forEach((order) => {
-      const key = order.customerEmail.toLowerCase();
+      const email = order.customerEmail || '';
+      if (!email) return;
+      const key = email.toLowerCase();
       const existing = customerMap.get(key);
 
       if (existing) {
@@ -104,9 +106,9 @@ const AdminOrders: React.FC<AdminOrdersProps> = ({
   }, [orders]);
 
   const uniqueCustomers = useMemo(() => {
-    const emailsInView = new Set(filteredOrders.map(o => o.customerEmail.toLowerCase()));
+    const emailsInView = new Set(filteredOrders.map(o => (o.customerEmail || '').toLowerCase()));
     return Array.from(globalCustomers.values())
-      .filter(customer => customer.id !== null && emailsInView.has(customer.email.toLowerCase()))
+      .filter(customer => customer.id !== null && emailsInView.has((customer.email || '').toLowerCase()))
       .sort((a, b) => b.orderCount - a.orderCount);
   }, [globalCustomers, filteredOrders]);
 
