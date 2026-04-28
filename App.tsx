@@ -102,6 +102,12 @@ const buildPath = (
       return '/customer-auth';
     case Page.CustomerProfile:
       return '/customer-profile';
+    case Page.AdminOverview:
+      return '/admin-overview';
+    case Page.AdminOrders:
+      return '/admin-orders';
+    case Page.AdminLeads:
+      return '/admin-leads';
     case Page.AdminInventory:
       return '/admin-inventory';
     case Page.AdminProfile:
