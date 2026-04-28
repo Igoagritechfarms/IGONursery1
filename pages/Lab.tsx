@@ -1,8 +1,64 @@
-
-import React from 'react';
-import { Microscope, Database, Thermometer, Droplets, Zap, ChevronRight, Activity, Cpu } from 'lucide-react';
+import React, { useState } from 'react';
+import { Microscope, Database, Thermometer, Droplets, Zap, ChevronRight, Activity, Cpu, CheckCircle, Loader2 } from 'lucide-react';
+import { customerApi } from '../services/customerApi';
 
 const Lab: React.FC = () => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    address: '',
+    location: '',
+    issue: '',
+    auditDate: '',
+    plan: 'Soil Analysis (Standard)'
+  });
+
+  const handleConnect = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      const planCosts: Record<string, number> = {
+        'Soil Analysis (Standard)': 2000,
+        'Ecosystem Audit (Premium)': 5000,
+        'Full Digital-Twin Setup (Elite)': 12000
+      };
+
+      await customerApi.submitLead({
+        type: 'lab-audit',
+        customerName: formData.name,
+        customerEmail: formData.email,
+        customerPhone: formData.phone,
+        address: formData.address,
+        location: formData.location,
+        issue: formData.issue,
+        auditDate: formData.auditDate,
+        planName: formData.plan,
+        selectedPlan: formData.plan,
+        cost: planCosts[formData.plan] || 0,
+        message: `Lab audit requested for ${formData.plan}`
+      });
+      setSubmitted(true);
+      setFormData({
+        name: '',
+        email: '',
+        phone: '',
+        address: '',
+        location: '',
+        issue: '',
+        auditDate: '',
+        plan: 'Soil Analysis (Standard)'
+      });
+    } catch (error) {
+      console.error('Lab audit request failed:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="bg-white min-h-screen">
       {/* Lab Header */}
@@ -92,7 +148,135 @@ const Lab: React.FC = () => {
           <Microscope className="w-16 h-16 text-igo-dark mx-auto" />
           <h2 className="text-4xl font-black uppercase tracking-tighter">Request a Soil & Lab Audit</h2>
           <p className="text-igo-muted text-lg font-medium">Planning a major landscape project? Our lab can provide detailed site analysis and plant palette verification before you break ground.</p>
-          <button className="bg-igo-dark text-white px-10 py-5 rounded-2xl font-black uppercase text-xs tracking-[0.3em] hover:bg-igo-lime hover:text-igo-dark transition-all">Connect with IGO Lab</button>
+          
+          {submitted ? (
+            <div className="bg-white p-12 rounded-[3rem] shadow-2xl border border-igo-lime inline-flex flex-col items-center gap-6 animate-in zoom-in duration-300 mx-auto">
+              <CheckCircle className="w-16 h-16 text-igo-lime" />
+              <div className="text-center">
+                <p className="text-igo-dark font-black uppercase text-xl tracking-tighter mb-2">Audit Request Sent!</p>
+                <p className="text-sm text-igo-muted font-bold uppercase tracking-widest max-w-xs mx-auto">Our research team is reviewing your site data and will contact you within 12 hours.</p>
+              </div>
+              <button 
+                onClick={() => setSubmitted(false)}
+                className="text-igo-lime font-black uppercase text-[10px] tracking-widest border-b-2 border-igo-lime pb-1"
+              >
+                New Audit Request
+              </button>
+            </div>
+          ) : (
+            <div className="bg-white p-8 md:p-12 rounded-[3.5rem] shadow-2xl text-left max-w-3xl mx-auto border border-gray-50">
+              <form onSubmit={handleConnect} className="space-y-6">
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-igo-muted">Full Name</label>
+                    <input 
+                      type="text" 
+                      required
+                      value={formData.name}
+                      onChange={(e) => setFormData({...formData, name: e.target.value})}
+                      className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 focus:ring-2 focus:ring-igo-lime transition-all outline-none text-sm font-medium" 
+                      placeholder="Dr. Alexander" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-igo-muted">Research Email</label>
+                    <input 
+                      type="email" 
+                      required
+                      value={formData.email}
+                      onChange={(e) => setFormData({...formData, email: e.target.value})}
+                      className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 focus:ring-2 focus:ring-igo-lime transition-all outline-none text-sm font-medium" 
+                      placeholder="research@domain.com" 
+                    />
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-igo-muted">Phone Number</label>
+                    <input 
+                      type="tel" 
+                      required
+                      value={formData.phone}
+                      onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                      className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 focus:ring-2 focus:ring-igo-lime transition-all outline-none text-sm font-medium" 
+                      placeholder="+91 98765 43210" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-igo-muted">Audit Location</label>
+                    <input 
+                      type="text" 
+                      required
+                      value={formData.location}
+                      onChange={(e) => setFormData({...formData, location: e.target.value})}
+                      className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 focus:ring-2 focus:ring-igo-lime transition-all outline-none text-sm font-medium" 
+                      placeholder="City/Area" 
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-igo-muted">Site Address</label>
+                  <input 
+                    type="text" 
+                    required
+                    value={formData.address}
+                    onChange={(e) => setFormData({...formData, address: e.target.value})}
+                    className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 focus:ring-2 focus:ring-igo-lime transition-all outline-none text-sm font-medium" 
+                    placeholder="Full location for physical audit..." 
+                  />
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-igo-muted">Audit Type</label>
+                    <select 
+                      value={formData.plan}
+                      onChange={(e) => setFormData({...formData, plan: e.target.value})}
+                      className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 focus:ring-2 focus:ring-igo-lime transition-all outline-none text-sm font-medium appearance-none" 
+                    >
+                      <option>Soil Analysis (Standard)</option>
+                      <option>Ecosystem Audit (Premium)</option>
+                      <option>Full Digital-Twin Setup (Elite)</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-igo-muted">Preferred Audit Date</label>
+                    <input 
+                      type="date" 
+                      required
+                      value={formData.auditDate}
+                      onChange={(e) => setFormData({...formData, auditDate: e.target.value})}
+                      className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 focus:ring-2 focus:ring-igo-lime transition-all outline-none text-sm font-medium" 
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-igo-muted">Current Issues / Research Goal</label>
+                  <textarea 
+                    value={formData.issue}
+                    onChange={(e) => setFormData({...formData, issue: e.target.value})}
+                    className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 focus:ring-2 focus:ring-igo-lime transition-all outline-none text-sm font-medium h-24 resize-none" 
+                    placeholder="Describe specific botanical or environmental issues..."
+                  ></textarea>
+                </div>
+
+                <button 
+                  disabled={isSubmitting}
+                  type="submit"
+                  className="w-full bg-igo-dark text-white py-6 rounded-2xl font-black uppercase text-xs tracking-[0.4em] hover:bg-igo-lime hover:text-igo-dark transition-all disabled:opacity-50 flex items-center justify-center gap-3 shadow-xl"
+                >
+                  {isSubmitting ? (
+                    <>Processing <Loader2 className="w-4 h-4 animate-spin" /></>
+                  ) : (
+                    'Initiate IGO Lab Audit'
+                  )}
+                </button>
+              </form>
+            </div>
+          )}
         </div>
       </section>
     </div>

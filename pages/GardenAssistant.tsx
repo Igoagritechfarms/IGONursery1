@@ -21,7 +21,8 @@ const GardenAssistant: React.FC = () => {
     setIsGenerating(true);
     // Simulate AI generation
     await new Promise(r => setTimeout(r, 2500));
-    setResults({
+    
+    const generatedResults = {
         plants: [
             { name: 'Monstera Deliciosa', reason: 'Perfect for your indirect light setting.' },
             { name: 'Fiddle Leaf Fig', reason: 'Adds vertical architectural interest.' },
@@ -29,7 +30,30 @@ const GardenAssistant: React.FC = () => {
         ],
         estimate: '₹12,000 - ₹18,000',
         timeline: '2-3 Weeks Execution'
-    });
+    };
+    
+    setResults(generatedResults);
+
+    // Save as a lead for the admin to see
+    const newLead = {
+      id: `ai-${Date.now()}`,
+      customerName: 'AI Generated Profile',
+      customerEmail: 'assistant@igo.tech',
+      type: 'consultation',
+      status: 'new',
+      createdAt: new Date().toISOString(),
+      location: formData.location,
+      issue: `AI DESIGN REQUEST: ${formData.userType} project for ${formData.environment} environment. Interested in ${formData.interests.join(', ')}.`,
+      selectedPlan: formData.budget,
+      chatHistory: [
+        { sender: 'customer', message: `I've used the AI Assistant to generate a blueprint for my ${formData.userType} in ${formData.location}. My environment is ${formData.environment} and my budget is ${formData.budget}.`, timestamp: new Date().toISOString() },
+        { sender: 'admin', message: `SYSTEM: AI Blueprint captured. Summary: ${generatedResults.plants.map(p => p.name).join(', ')}. Estimate: ${generatedResults.estimate}.`, timestamp: new Date().toISOString() }
+      ]
+    };
+
+    const existingLeads = JSON.parse(localStorage.getItem('igo_leads') || '[]');
+    localStorage.setItem('igo_leads', JSON.stringify([newLead, ...existingLeads]));
+
     setIsGenerating(false);
     setStep(6);
   };

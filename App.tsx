@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { CartItem, Page, StoreProduct, Product as NurseryProduct } from './types';
-import Header from './components/Header';
+import Header from './components/SiteHeader';
 import Footer from './components/Footer';
 import Home from './pages/Home';
 import Shop from './pages/Shop';
@@ -14,8 +13,23 @@ import KnowledgeDetail from './pages/KnowledgeDetail';
 import Visit from './pages/Visit';
 import Cart from './pages/Cart';
 import AddProduct from './pages/AddProduct';
+import Checkout, { OrderData } from './pages/Checkout';
+import OrderConfirmation from './pages/OrderConfirmation';
+import OrderHistory from './pages/OrderHistory';
+import AdminOrders from './pages/AdminOrders';
+import AdminLeads from './pages/AdminLeads';
+import AdminOverview from './pages/AdminOverview';
+import AdminLayout from './components/AdminLayout';
+import AdminLogin from './pages/AdminLogin';
+import AdminInventory from './pages/AdminInventory';
+import CustomerAuth from './pages/CustomerAuth';
+import CustomerProfile from './pages/CustomerProfile';
+import { customerApi } from './services/customerApi';
+import { Customer, Notification, CartItem, Page, StoreProduct, Product as NurseryProduct, Order } from './types';
+import { Bell, CheckCircle2, X } from 'lucide-react';
 import { INITIAL_STORE_PRODUCTS } from './data/storeProducts';
 import { KNOWLEDGE_ARTICLES } from './data/knowledgeArticles';
+import { sendOrderConfirmationEmail, sendAdminOrderNotification } from './services/orderEmailService';
 
 interface ParsedRoute {
   page: Page;
@@ -68,12 +82,34 @@ const buildPath = (
       return '/visit';
     case Page.Cart:
       return '/cart';
+    case Page.Checkout:
+      return '/checkout';
+    case Page.OrderConfirmation:
+      return '/order-confirmation';
+    case Page.OrderHistory:
+      return '/order-history';
+    case Page.AdminOrders:
+      return '/admin-orders';
+    case Page.AdminLeads:
+      return '/admin-leads';
     case Page.AddProduct:
       return '/add-product';
     case Page.About:
       return '/about';
     case Page.Account:
       return '/account';
+    case Page.CustomerAuth:
+      return '/customer-auth';
+    case Page.CustomerProfile:
+      return '/customer-profile';
+    case Page.AdminInventory:
+      return '/admin-inventory';
+    case Page.AdminProfile:
+      return '/admin-profile';
+    case Page.AdminNotifications:
+      return '/admin-notifications';
+    case Page.MailHub:
+      return '/mail-hub';
     default:
       return '/';
   }
@@ -137,6 +173,60 @@ const parseLocationToRoute = (): ParsedRoute => {
     };
   }
 
+  if (first === 'checkout') {
+    return {
+      page: Page.Checkout,
+      productSlug: null,
+      knowledgeArticleId: null,
+      canonicalPath: '/checkout',
+    };
+  }
+
+  if (first === 'order-confirmation') {
+    return {
+      page: Page.OrderConfirmation,
+      productSlug: null,
+      knowledgeArticleId: null,
+      canonicalPath: '/order-confirmation',
+    };
+  }
+
+  if (first === 'order-history') {
+    return {
+      page: Page.OrderHistory,
+      productSlug: null,
+      knowledgeArticleId: null,
+      canonicalPath: '/order-history',
+    };
+  }
+
+  if (first === 'admin-orders') {
+    return {
+      page: Page.AdminOrders,
+      productSlug: null,
+      knowledgeArticleId: null,
+      canonicalPath: '/admin-orders',
+    };
+  }
+
+  if (first === 'admin-leads') {
+    return {
+      page: Page.AdminLeads,
+      productSlug: null,
+      knowledgeArticleId: null,
+      canonicalPath: '/admin-leads',
+    };
+  }
+
+  if (first === 'admin-inventory') {
+    return {
+      page: Page.AdminInventory,
+      productSlug: null,
+      knowledgeArticleId: null,
+      canonicalPath: '/admin-inventory',
+    };
+  }
+
   if (first === 'add-product') {
     return {
       page: Page.AddProduct,
@@ -154,6 +244,7 @@ const parseLocationToRoute = (): ParsedRoute => {
     [Page.Visit]: Page.Visit,
     [Page.About]: Page.About,
     [Page.Account]: Page.Account,
+    [Page.AdminLogin]: Page.AdminLogin,
   };
 
   const matchedPage = staticRoutes[first];
@@ -179,8 +270,79 @@ const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<Page>(initialRoute.page);
   const [productSlug, setProductSlug] = useState<string | null>(initialRoute.productSlug);
   const [knowledgeArticleId, setKnowledgeArticleId] = useState<string | null>(initialRoute.knowledgeArticleId);
-  const [products, setProducts] = useState<StoreProduct[]>(INITIAL_STORE_PRODUCTS);
+  const [products, setProducts] = useState<StoreProduct[]>(() => {
+    try {
+      const saved = localStorage.getItem('igo_products');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) {
+      console.error('Failed to parse products from local storage', e);
+    }
+    return INITIAL_STORE_PRODUCTS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('igo_products', JSON.stringify(products));
+  }, [products]);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [isAdmin, setIsAdmin] = useState<boolean>(() => {
+    const savedAdmin = localStorage.getItem('isAdmin');
+    return savedAdmin === 'true';
+  });
+  const [currentOrder, setCurrentOrder] = useState<{ orderNumber: string; total: number } | null>(null);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [adminNotifications, setAdminNotifications] = useState<any[]>([]);
+
+  // Sync admin notifications
+  useEffect(() => {
+    if (isAdmin) {
+      const leads = JSON.parse(localStorage.getItem('igo_leads') || '[]');
+      const newNotifications = leads
+        .filter((l: any) => l.status === 'new')
+        .map((l: any) => ({
+          id: l.id,
+          type: 'lead',
+          title: `New ${l.type.toUpperCase()}`,
+          message: `${l.customerName} requested ${l.selectedPlan || 'service'}`,
+          time: l.createdAt,
+          read: false
+        }));
+      setAdminNotifications(newNotifications);
+    }
+  }, [isAdmin, currentPage]);
+  const [customer, setCustomer] = useState<Customer | null>(null);
+  const [customerOrders, setCustomerOrders] = useState<Order[]>([]);
+  const [customerNotifications, setCustomerNotifications] = useState<Notification[]>([]);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' } | null>(null);
+
+  const showToast = (message: string, type: 'success' | 'info' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 5000);
+  };
+
+  const fetchCustomerData = async () => {
+    try {
+      const [p, o, n] = await Promise.all([
+        customerApi.getProfile(),
+        customerApi.getOrders(),
+        customerApi.getNotifications()
+      ]);
+      if (p.customer) setCustomer(p.customer);
+      if (o.orders) setCustomerOrders(o.orders);
+      if (n.notifications) setCustomerNotifications(n.notifications);
+    } catch (e) {
+      console.error('Session fetch error');
+    }
+  };
+
+  useEffect(() => {
+    const token = localStorage.getItem('igo_customer_token');
+    if (token) {
+      fetchCustomerData();
+    }
+  }, []);
 
   const syncRouteWithLocation = () => {
     const parsedRoute = parseLocationToRoute();
@@ -220,8 +382,57 @@ const App: React.FC = () => {
     };
   }, []);
 
-  const handlePageChange = (page: Page) => {
-    navigateTo(buildPath(page));
+  const handlePageChange = (page: Page, param?: string) => {
+    let path = buildPath(page);
+    if (param) {
+      // If param starts with ?, it's a query, otherwise append as segment
+      if (param.startsWith('?')) {
+        path += param;
+      } else if (param.includes('?')) {
+        // Already has a query, just append
+        path += param.startsWith('/') ? param : '/' + param;
+      } else {
+        path += `/${param}`;
+      }
+    }
+    navigateTo(path);
+  };
+
+  const handleAdminLogout = () => {
+    setIsAdmin(false);
+    localStorage.removeItem('isAdmin');
+    console.log(`🔐 Admin logged out`);
+    navigateTo('/');
+  };
+
+  const handleAdminLogin = async (email: string, pass: string) => {
+    if (email === 'admin@igo.local' && pass === 'Admin@123') {
+      setIsAdmin(true);
+      localStorage.setItem('isAdmin', 'true');
+      navigateTo('/admin-overview');
+      return true;
+    }
+    return false;
+  };
+
+  const handleCustomerLogin = (session: any) => {
+    setCustomer(session.customer);
+    fetchCustomerData();
+    navigateTo('/customer-profile');
+  };
+
+  const handleDeleteCustomer = (customerId: number | string) => {
+    console.log(`🗑️ Deleting customer and associated data: ${customerId}`);
+    // In a real app, this would call an API. For now, we'll just filter them out of local state if applicable.
+    showToast(`Account records for ${customerId} have been purged.`, 'info');
+  };
+
+  const handleCustomerLogout = async () => {
+    await customerApi.logout();
+    setCustomer(null);
+    setCustomerOrders([]);
+    setCustomerNotifications([]);
+    navigateTo('/');
   };
 
   const handleOpenProduct = (slug: string) => {
@@ -285,6 +496,114 @@ const App: React.FC = () => {
     navigateTo('/store');
   };
 
+  const handleCheckout = () => {
+    navigateTo(buildPath(Page.Checkout));
+  };
+
+  const handleSubmitOrder = async (orderData: OrderData) => {
+    const orderNumber = `IGO-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+    const trackingNumber = `TRK-${orderNumber.substring(4)}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
+    
+    // Calculate order totals
+    const subtotal = cartItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+    const tax = subtotal * 0.05; // 5% tax
+    const deliveryCharge = 50; // Fixed delivery charge
+    const total = subtotal + tax + deliveryCharge;
+    
+    // Create date strings
+    const createdAt = new Date().toISOString();
+    const estimatedDelivery = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7 days from now
+    
+    // Create the order object
+    const newOrder: Order = {
+      id: `order-${Date.now()}`,
+      orderNumber,
+      trackingNumber,
+      customerName: `${orderData.firstName} ${orderData.lastName}`,
+      customerEmail: orderData.email,
+      customerPhone: orderData.phone,
+      shippingAddress: orderData.address,
+      city: orderData.city,
+      state: orderData.state,
+      zipCode: orderData.zipCode,
+      items: cartItems,
+      subtotal,
+      tax,
+      deliveryCharge,
+      total,
+      paymentMethod: orderData.paymentMethod,
+      status: 'processing',
+      createdAt,
+      estimatedDelivery,
+    };
+    
+    // 1. Save to Backend DB (Background)
+    const accessKey = Math.random().toString(36).substr(2, 12).toUpperCase();
+    fetch('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...newOrder, accessKey }),
+    }).then(() => console.log('✅ Order saved to backend')).catch(e => console.error('⚠️ DB Error:', e));
+
+    // 2. Send Emails (Background)
+    const emailData = {
+      to: orderData.email,
+      subject: `Order Confirmation #${orderNumber}`,
+      orderNumber,
+      trackingNumber,
+      customerName: `${orderData.firstName} ${orderData.lastName}`,
+      estimatedDelivery,
+      total,
+      items: cartItems.map(item => ({ name: item.product.name, quantity: item.quantity, price: item.product.price })),
+    };
+
+    Promise.allSettled([
+      sendOrderConfirmationEmail(emailData),
+      sendAdminOrderNotification(emailData)
+    ]).then(results => {
+      console.log('✅ background emails processed');
+    });
+    
+    // 3. Instant Navigation
+    const updatedOrders = [...orders, newOrder];
+    setOrders(updatedOrders);
+    localStorage.setItem('orders', JSON.stringify(updatedOrders));
+    
+    setCurrentOrder({ orderNumber, total });
+    setCartItems([]);
+    
+    showToast(`Order #${orderNumber} placed successfully!`, 'success');
+    
+    if (customer) {
+      fetchCustomerData();
+    }
+    
+    navigateTo(buildPath(Page.OrderConfirmation));
+  };
+
+  const handleContinueToHome = () => {
+    navigateTo(buildPath(Page.Shop));
+  };
+
+  const handleOpenOrder = (orderNumber: string) => {
+    console.log(`Open order: ${orderNumber}`);
+    // In a real app, this would navigate to an order details page or open a modal
+  };
+
+  const handleUpdateOrderStatus = async (orderId: string, status: Order['status']) => {
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return;
+
+    const updatedOrders = orders.map(o => o.id === orderId ? { ...o, status } : o);
+    setOrders(updatedOrders);
+    localStorage.setItem('orders', JSON.stringify(updatedOrders));
+
+    // Note: The real email and internal notification are now handled by the backend PATCH endpoint
+    // to ensure consistency and prevent double-emailing.
+      
+    showToast(`Status updated and notified ${order.customerEmail}`, 'success');
+  };
+
   const cartCount = useMemo(
     () => cartItems.reduce((total, item) => total + item.quantity, 0),
     [cartItems],
@@ -302,6 +621,8 @@ const App: React.FC = () => {
       case Page.Shop:
         return (
           <Shop
+            products={products}
+            onOpenProduct={handleOpenProduct}
             addToCart={(product: NurseryProduct) =>
               handleAddToCart({
                 id: `shop-${product.id}`,
@@ -317,6 +638,7 @@ const App: React.FC = () => {
       case Page.Product:
         return (
           <Product
+            products={products}
             selectedSlug={productSlug}
             onOpenProduct={handleOpenProduct}
             onAddToCart={handleAddToCart}
@@ -348,17 +670,137 @@ const App: React.FC = () => {
         return (
           <Cart
             items={cartItems}
+            isLoggedIn={!!customer}
             onIncrease={handleIncreaseQuantity}
             onDecrease={handleDecreaseQuantity}
             onRemove={handleRemoveFromCart}
             onContinueShopping={() => navigateTo('/store')}
+            onCheckout={handleCheckout}
           />
+        );
+      case Page.Checkout:
+        return (
+          <Checkout
+            items={cartItems}
+            onBack={() => navigateTo('/cart')}
+            onSubmitOrder={handleSubmitOrder}
+          />
+        );
+      case Page.OrderConfirmation:
+        return currentOrder ? (
+          <OrderConfirmation
+            items={cartItems.length > 0 ? cartItems : []}
+            total={currentOrder.total}
+            orderNumber={currentOrder.orderNumber}
+            onContinueShopping={handleContinueToHome}
+          />
+        ) : (
+          <Home />
         );
       case Page.AddProduct:
         return (
           <AddProduct
             onSubmitProduct={handleSubmitProduct}
             onCancel={() => navigateTo('/store')}
+          />
+        );
+      case Page.OrderHistory:
+        return (
+          <OrderHistory
+            orders={orders}
+            onBack={() => navigateTo('/')}
+            onOpenOrder={handleOpenOrder}
+          />
+        );
+      case Page.CustomerAuth:
+        return (
+          <CustomerAuth 
+            onLogin={handleCustomerLogin} 
+            onSignup={() => navigateTo('/customer-auth')} 
+          />
+        );
+      case Page.CustomerProfile:
+        if (!customer) {
+          navigateTo('/customer-auth');
+          return <Home />;
+        }
+        return (
+          <CustomerProfile
+            customer={customer}
+            orders={customerOrders}
+            notifications={customerNotifications}
+            onLogout={handleCustomerLogout}
+            onUpdateProfile={(updatedCustomer) => setCustomer(updatedCustomer)}
+            onRefreshNotifications={fetchCustomerData}
+            initialTab={(window.location.search.split('tab=')[1] as any) || 'account'}
+          />
+        );
+      case Page.AdminOrders:
+      case Page.AdminLeads:
+      case Page.AdminInventory:
+      case Page.AdminOverview:
+      case Page.AdminNotifications:
+      case Page.AdminProfile:
+      case Page.MailHub:
+      case Page.AddProduct:
+        if (!isAdmin) {
+          return (
+            <AdminLogin 
+              defaultEmail="admin@igo.local"
+              onLogin={handleAdminLogin}
+            />
+          );
+        }
+
+        const renderAdminContent = () => {
+          switch (currentPage) {
+            case Page.AdminOrders:
+              return (
+                <AdminOrders
+                  orders={orders}
+                  onBack={() => navigateTo('/')}
+                  onOpenOrder={handleOpenOrder}
+                  onUpdateStatus={handleUpdateOrderStatus}
+                  onDeleteCustomer={handleDeleteCustomer}
+                  onNavigate={(page) => handlePageChange(page)}
+                />
+              );
+            case Page.AdminLeads:
+              return <AdminLeads onNavigate={(page) => handlePageChange(page)} />;
+            case Page.AdminInventory:
+              return (
+                <AdminInventory 
+                  products={products} 
+                  onUpdateProducts={setProducts} 
+                />
+              );
+            case Page.AddProduct:
+              return (
+                <div className="p-10">
+                   <AddProduct onSubmitProduct={handleSubmitProduct} onCancel={() => handlePageChange(Page.AdminOrders)} />
+                </div>
+              );
+            default:
+              return <AdminOverview />;
+          }
+        };
+
+        return (
+          <AdminLayout 
+            currentPage={currentPage} 
+            onNavigate={(page) => handlePageChange(page)}
+            onLogout={handleAdminLogout}
+            notifications={adminNotifications}
+            orders={orders}
+          >
+            {renderAdminContent()}
+          </AdminLayout>
+        );
+      case Page.AdminLogin:
+        return (
+          <AdminLogin
+            defaultEmail="admin@igo.local"
+            onLogin={handleAdminLogin}
           />
         );
       default:
@@ -371,9 +813,40 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col selection:bg-igo-lime selection:text-igo-dark">
       {!isAddProductStandalone && (
-        <Header currentPage={currentPage} setCurrentPage={handlePageChange} cartCount={cartCount} />
+        <Header 
+          currentPage={currentPage} 
+          setCurrentPage={handlePageChange} 
+          cartCount={cartCount}
+          isAdmin={isAdmin}
+          onAdminLogout={handleAdminLogout}
+          customer={customer}
+          onCustomerLogout={handleCustomerLogout}
+          notifications={customerNotifications}
+          onRefreshNotifications={fetchCustomerData}
+        />
       )}
-      <main className={`flex-grow ${isAddProductStandalone ? '' : 'pt-20'}`}>{renderPage()}</main>
+      <main className={`flex-grow ${isAddProductStandalone ? '' : 'pt-20'}`}>
+        {renderPage()}
+      </main>
+      
+      {/* Toast System - "Pop up" for Notifications */}
+      {toast && (
+        <div className="fixed bottom-8 right-8 z-[100] animate-in slide-in-from-right-10 duration-500">
+          <div className="bg-igo-dark text-white p-5 rounded-[2rem] shadow-2xl border border-white/10 flex items-center gap-4 min-w-[300px] backdrop-blur-xl bg-opacity-95">
+            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${toast.type === 'success' ? 'bg-igo-lime text-igo-dark' : 'bg-blue-500 text-white'}`}>
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+            <div className="flex-grow">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-igo-lime mb-0.5">Notification</p>
+              <p className="text-sm font-bold">{toast.message}</p>
+            </div>
+            <button onClick={() => setToast(null)} className="p-2 hover:bg-white/10 rounded-xl transition-colors">
+              <X className="w-4 h-4 text-gray-400" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {!isAddProductStandalone && <Footer setCurrentPage={handlePageChange} />}
     </div>
   );

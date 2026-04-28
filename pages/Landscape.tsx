@@ -1,6 +1,6 @@
-
 import React, { useState, useEffect, useRef } from 'react';
-import { PenTool, CheckCircle, ArrowRight, ShieldCheck, Star, ChevronLeft, ChevronRight, User, Quote, Send } from 'lucide-react';
+import { PenTool, CheckCircle, ArrowRight, ShieldCheck, Star, ChevronLeft, ChevronRight, User, Quote, Send, Loader2 } from 'lucide-react';
+import { customerApi } from '../services/customerApi';
 
 const HERO_IMAGES = [
   "https://images.unsplash.com/photo-1590054790395-63ad360ca217?auto=format&fit=crop&q=80&w=2000",
@@ -14,31 +14,31 @@ const SERVICES = [
     title: 'Villa Gardens', 
     type: 'Villa',
     desc: 'Creating private sanctuaries with vertical gardens, aromatic paths, and minimalist lawn designs.',
-    img: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&q=80&w=600'
+    img: '/images/landscape images/Villa Gardens.jpg'
   },
   { 
     title: 'Resort Estates', 
     type: 'Resort',
     desc: 'Large-scale planting, water features, and path lighting for luxury hospitality properties.',
-    img: 'https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&q=80&w=600'
+    img: '/images/landscape images/Resort Estates.jpg'
   },
   { 
     title: 'Urban Offices', 
     type: 'Office',
     desc: 'Biophilic interior design and terrace gardens to boost employee productivity and wellness.',
-    img: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=600'
+    img: '/images/landscape images/Urban Offices.jpg'
   },
   { 
     title: 'Minimalist Courtyards', 
     type: 'Villa',
     desc: 'Japanese-inspired zen spaces focused on texture, light, and low-maintenance native species.',
-    img: 'https://images.unsplash.com/photo-1582037928867-173811213389?auto=format&fit=crop&q=80&w=600'
+    img: '/images/landscape images/Minimalist Courtyards.jpg'
   },
   { 
     title: 'Luxury Rooftops', 
     type: 'Office',
     desc: 'High-altitude greenery engineered for wind resistance and optimized for panoramic views.',
-    img: 'https://images.unsplash.com/photo-1590523277543-a94d2e4eb00b?auto=format&fit=crop&q=80&w=600'
+    img: '/images/landscape images/Luxury Rooftops.jpg'
   }
 ];
 
@@ -66,9 +66,67 @@ const TESTIMONIALS = [
   }
 ];
 
+const CASE_STUDIES: Record<string, { title: string; bg: string; challenge: string; solution: string; stats: string[]; features: string[] }> = {
+  'Villa Gardens': {
+    title: 'Precision Villa Ecosystem',
+    bg: '/images/landscape_case_studies/villa.png',
+    challenge: 'A coastal villa in ECR with high soil salinity and limited space for traditional gardening.',
+    solution: 'Implemented a multi-level vertical garden with salt-tolerant specimen plants and a custom-engineered fertigation system.',
+    stats: ['45% Water Savings', '120+ Plant Species', '98% Survival Rate'],
+    features: ['Biometric Irrigation Control', 'Salt-Resistant Vertical Panels', 'Aromatic Night-Blooming Species']
+  },
+  'Resort Estates': {
+    title: 'Luxury Hospitality Masterplan',
+    bg: '/images/landscape_case_studies/resort.png',
+    challenge: '25-acre resort property requiring a year-round "lush jungle" aesthetic without high maintenance costs.',
+    solution: 'Designed a sustainable masterplan using native deciduous species integrated with IoT-monitored water features.',
+    stats: ['70% Maintenance Reduction', '25 Acres Reimagined', 'Zero Waste Policy'],
+    features: ['Automated Lake Filtration', 'Night-Sky Compliant Lighting', 'Native Flora Regeneration']
+  },
+  'Urban Offices': {
+    title: 'Corporate Biophilic Transformation',
+    bg: '/images/landscape_case_studies/office.png',
+    challenge: 'High-stress corporate environment with low natural light and poor air quality index (AQI).',
+    solution: 'Installed "Lung-Walls" and specimen indoor trees that act as natural air scrubbers while reducing noise pollution.',
+    stats: ['15% Productivity Boost', '30% Better Air Quality', 'AQI Level 20'],
+    features: ['Air-Filtering Living Walls', 'Silent Waterfall Acoustics', 'Circadian Lighting Sync']
+  },
+  'Minimalist Courtyards': {
+    title: 'Zen Tranquility Courtyard',
+    bg: '/images/landscape_case_studies/courtyard.png',
+    challenge: 'A cramped 20x20 courtyard that felt claustrophobic and uninviting.',
+    solution: 'Used forced perspective and single specimen planting to create an infinite sense of space and tranquility.',
+    stats: ['90% Less Maintenance', 'Perceived Space 2x', 'Infinite Perspective'],
+    features: ['Specimen Bonsai Integration', 'Recycled Stone Hardscaping', 'Anti-Glare Light Diffusers']
+  },
+  'Luxury Rooftops': {
+    title: 'Sky-High Penthouse Oasis',
+    bg: '/images/landscape_case_studies/rooftop.png',
+    challenge: 'High wind speeds and weight restrictions on a 40th-floor luxury penthouse.',
+    solution: 'Engineered ultra-lightweight structural soil and wind-resistant glass barriers integrated with aerodynamic planting.',
+    stats: ['Wind Resistant up to 100km/h', '1.5 Tons Weight Saved', 'Panoramic View Optimized'],
+    features: ['Structural Lightweight Soil', 'Aero-Dynamic Plant Selection', 'Smart Fire-Pit Integration']
+  }
+};
+
 const Landscape: React.FC = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [filter, setFilter] = useState('All');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [selectedCaseStudy, setSelectedCaseStudy] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    address: '',
+    location: '',
+    issue: '',
+    auditDate: '',
+    projectType: 'Luxury Villa Garden',
+    plan: 'Premium Zen Sanctuary',
+    message: ''
+  });
   const bookingRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -80,6 +138,51 @@ const Landscape: React.FC = () => {
 
   const scrollToBooking = () => {
     bookingRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      const planCosts: Record<string, number> = {
+        'Basic Green Oasis': 1500,
+        'Premium Zen Sanctuary': 3500,
+        'Elite Resort Ecosystem': 7500
+      };
+
+      await customerApi.submitLead({
+        type: 'consultation',
+        customerName: formData.name,
+        customerEmail: formData.email,
+        customerPhone: formData.phone,
+        address: formData.address,
+        location: formData.location,
+        issue: formData.issue,
+        auditDate: formData.auditDate,
+        projectType: formData.projectType,
+        planName: formData.plan,
+        selectedPlan: formData.plan,
+        cost: planCosts[formData.plan] || 0,
+        message: `Landscape consultation requested for ${formData.plan} [${formData.projectType}]`
+      });
+      setSubmitted(true);
+      setFormData({ 
+        name: '', 
+        email: '', 
+        phone: '', 
+        address: '', 
+        location: '', 
+        issue: '', 
+        auditDate: '', 
+        projectType: 'Luxury Villa Garden', 
+        plan: 'Premium Zen Sanctuary', 
+        message: '' 
+      });
+    } catch (error) {
+      console.error('Failed to submit consultation request:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const filteredServices = filter === 'All' 
@@ -108,12 +211,14 @@ const Landscape: React.FC = () => {
         <button 
           onClick={() => setCurrentSlide((prev) => (prev - 1 + HERO_IMAGES.length) % HERO_IMAGES.length)}
           className="absolute left-6 z-20 p-3 rounded-full bg-white/10 backdrop-blur hover:bg-white/20 text-white transition-all hidden md:block"
+          aria-label="Previous slide"
         >
           <ChevronLeft className="w-6 h-6" />
         </button>
         <button 
           onClick={() => setCurrentSlide((prev) => (prev + 1) % HERO_IMAGES.length)}
           className="absolute right-6 z-20 p-3 rounded-full bg-white/10 backdrop-blur hover:bg-white/20 text-white transition-all hidden md:block"
+          aria-label="Next slide"
         >
           <ChevronRight className="w-6 h-6" />
         </button>
@@ -146,6 +251,7 @@ const Landscape: React.FC = () => {
               key={idx}
               onClick={() => setCurrentSlide(idx)}
               className={`h-1.5 rounded-full transition-all ${idx === currentSlide ? 'w-8 bg-igo-lime' : 'w-4 bg-white/30'}`}
+              aria-label={`Go to slide ${idx + 1} of ${HERO_IMAGES.length}`}
             />
           ))}
         </div>
@@ -200,7 +306,13 @@ const Landscape: React.FC = () => {
                     <div className="px-4 pb-4">
                       <h3 className="text-2xl font-black mb-3 tracking-tighter uppercase">{s.title}</h3>
                       <p className="text-gray-500 text-sm leading-relaxed mb-6 font-medium">{s.desc}</p>
-                      <button className="text-igo-lime font-black uppercase text-[10px] tracking-widest flex items-center gap-2 group-hover:gap-4 transition-all">
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedCaseStudy(s.title);
+                        }}
+                        className="relative z-10 text-igo-lime font-black uppercase text-[10px] tracking-widest flex items-center gap-2 group-hover:gap-4 transition-all"
+                      >
                         Explore Case Study <ArrowRight className="w-3 h-3" />
                       </button>
                     </div>
@@ -311,40 +423,206 @@ const Landscape: React.FC = () => {
           </div>
 
           <div className="bg-white p-10 md:p-14 rounded-[3.5rem] shadow-2xl">
-            <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-igo-muted">Full Name</label>
-                  <input type="text" className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 focus:ring-2 focus:ring-igo-lime transition-all outline-none text-sm font-medium" placeholder="Alexander Graham" />
+            {submitted ? (
+              <div className="text-center py-20 space-y-6">
+                <div className="w-20 h-20 bg-igo-lime rounded-full flex items-center justify-center mx-auto shadow-lg animate-in zoom-in duration-500">
+                  <CheckCircle className="w-10 h-10 text-igo-dark" />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-igo-muted">Email Address</label>
-                  <input type="email" className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 focus:ring-2 focus:ring-igo-lime transition-all outline-none text-sm font-medium" placeholder="alex@domain.com" />
+                <h3 className="text-3xl font-black uppercase tracking-tighter text-igo-dark">Request Received!</h3>
+                <p className="text-igo-muted font-medium">An IGO architect will contact you within 24 hours.</p>
+                <button 
+                  onClick={() => setSubmitted(false)}
+                  className="text-igo-lime font-black uppercase text-xs tracking-widest border-b-2 border-igo-lime pb-1"
+                >
+                  Send another request
+                </button>
+              </div>
+            ) : (
+              <form className="space-y-6" onSubmit={handleSubmit}>
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-igo-muted">Full Name</label>
+                    <input 
+                      type="text" 
+                      required
+                      value={formData.name}
+                      onChange={(e) => setFormData({...formData, name: e.target.value})}
+                      className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 focus:ring-2 focus:ring-igo-lime transition-all outline-none text-sm font-medium" 
+                      placeholder="Alexander Graham" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-igo-muted">Email Address</label>
+                    <input 
+                      type="email" 
+                      required
+                      value={formData.email}
+                      onChange={(e) => setFormData({...formData, email: e.target.value})}
+                      className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 focus:ring-2 focus:ring-igo-lime transition-all outline-none text-sm font-medium" 
+                      placeholder="alex@domain.com" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-igo-muted">Phone Number</label>
+                    <input 
+                      type="tel" 
+                      required
+                      value={formData.phone}
+                      onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                      className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 focus:ring-2 focus:ring-igo-lime transition-all outline-none text-sm font-medium" 
+                      placeholder="+91 98765 43210" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-igo-muted">Project Location / City</label>
+                    <input 
+                      type="text" 
+                      required
+                      value={formData.location}
+                      onChange={(e) => setFormData({...formData, location: e.target.value})}
+                      className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 focus:ring-2 focus:ring-igo-lime transition-all outline-none text-sm font-medium" 
+                      placeholder="e.g. Jubilee Hills, Hyderabad" 
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-igo-muted">Project Type</label>
-                <select className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 focus:ring-2 focus:ring-igo-lime transition-all outline-none text-sm font-medium appearance-none">
-                  <option>Luxury Villa Garden</option>
-                  <option>Resort Masterplan</option>
-                  <option>Corporate Bio-Design</option>
-                  <option>Urban Terrace Garden</option>
-                </select>
-              </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-igo-muted">Site Address</label>
+                  <input 
+                    type="text" 
+                    required
+                    value={formData.address}
+                    onChange={(e) => setFormData({...formData, address: e.target.value})}
+                    className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 focus:ring-2 focus:ring-igo-lime transition-all outline-none text-sm font-medium" 
+                    placeholder="Complete site address for audit..." 
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-igo-muted">Brief Message</label>
-                <textarea className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 focus:ring-2 focus:ring-igo-lime transition-all outline-none text-sm font-medium h-32 resize-none" placeholder="Tell us about your vision..."></textarea>
-              </div>
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label htmlFor="project-type" className="text-[10px] font-black uppercase tracking-widest text-igo-muted">Selection Plan</label>
+                    <select 
+                      id="plan-type" 
+                      value={formData.plan}
+                      onChange={(e) => setFormData({...formData, plan: e.target.value})}
+                      className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 focus:ring-2 focus:ring-igo-lime transition-all outline-none text-sm font-medium appearance-none" 
+                    >
+                      <option>Basic Green Oasis</option>
+                      <option>Premium Zen Sanctuary</option>
+                      <option>Elite Resort Ecosystem</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-igo-muted">Preferred Audit Date</label>
+                    <input 
+                      type="date" 
+                      required
+                      value={formData.auditDate}
+                      onChange={(e) => setFormData({...formData, auditDate: e.target.value})}
+                      className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 focus:ring-2 focus:ring-igo-lime transition-all outline-none text-sm font-medium" 
+                    />
+                  </div>
+                </div>
 
-              <button className="w-full bg-igo-dark text-white py-6 rounded-2xl font-black uppercase text-xs tracking-[0.4em] hover:bg-igo-lime hover:text-igo-dark transition-all shadow-xl flex items-center justify-center gap-3 group">
-                Request Consultation <Send className="w-4 h-4 group-hover:translate-x-2 transition-transform" />
-              </button>
-            </form>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-igo-muted">Main Issues / Vision</label>
+                  <textarea 
+                    value={formData.issue}
+                    onChange={(e) => setFormData({...formData, issue: e.target.value})}
+                    className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 focus:ring-2 focus:ring-igo-lime transition-all outline-none text-sm font-medium h-24 resize-none" 
+                    placeholder="What specific problems are you facing with your current landscape?"
+                  ></textarea>
+                </div>
+
+                <button 
+                  disabled={isSubmitting}
+                  className="w-full bg-igo-dark text-white py-6 rounded-2xl font-black uppercase text-xs tracking-[0.4em] hover:bg-igo-lime hover:text-igo-dark transition-all shadow-xl flex items-center justify-center gap-3 group disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? (
+                    <>Processing <Loader2 className="w-4 h-4 animate-spin" /></>
+                  ) : (
+                    <>Request Consultation <Send className="w-4 h-4 group-hover:translate-x-2 transition-transform" /></>
+                  )}
+                </button>
+              </form>
+            )}
           </div>
         </div>
       </section>
+      {/* Case Study Modal */}
+      {selectedCaseStudy && CASE_STUDIES[selectedCaseStudy] && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-igo-dark/90 backdrop-blur-xl animate-in fade-in duration-500" 
+            onClick={() => setSelectedCaseStudy(null)} 
+          />
+          
+          <div className="relative w-full max-w-5xl bg-white rounded-[3rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
+            <div className="grid lg:grid-cols-2">
+              {/* Visual Side */}
+              <div className="relative h-[400px] lg:h-auto overflow-hidden">
+                <img 
+                  src={CASE_STUDIES[selectedCaseStudy].bg} 
+                  className="w-full h-full object-cover animate-pulse-slow" 
+                  alt={selectedCaseStudy} 
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-igo-dark/80 via-transparent to-transparent" />
+                <div className="absolute bottom-10 left-10 text-white">
+                   <div className="text-[10px] font-black uppercase tracking-[0.4em] text-igo-lime mb-2">Technical Case Study</div>
+                   <h3 className="text-4xl font-black uppercase tracking-tighter">{CASE_STUDIES[selectedCaseStudy].title}</h3>
+                </div>
+              </div>
+
+              {/* Content Side */}
+              <div className="p-12 lg:p-20 space-y-12 overflow-y-auto max-h-[90vh]">
+                <div className="space-y-6">
+                  <h4 className="text-xs font-black uppercase tracking-widest text-igo-muted">The Challenge</h4>
+                  <p className="text-lg text-igo-dark font-medium leading-relaxed">{CASE_STUDIES[selectedCaseStudy].challenge}</p>
+                </div>
+
+                <div className="space-y-6">
+                  <h4 className="text-xs font-black uppercase tracking-widest text-igo-muted">The IGO Solution</h4>
+                  <p className="text-lg text-igo-dark font-medium leading-relaxed italic border-l-4 border-igo-lime pl-6">{CASE_STUDIES[selectedCaseStudy].solution}</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-8">
+                  {CASE_STUDIES[selectedCaseStudy].stats.map((stat, i) => (
+                    <div key={i} className="bg-gray-50 p-6 rounded-2xl border border-gray-100">
+                       <div className="text-2xl font-black text-igo-dark uppercase tracking-tight">{stat.split(' ')[0]}</div>
+                       <div className="text-[10px] font-black text-igo-muted uppercase tracking-widest mt-1">{stat.split(' ').slice(1).join(' ')}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="space-y-6">
+                   <h4 className="text-xs font-black uppercase tracking-widest text-igo-muted">Key Architectural Features</h4>
+                   <div className="flex flex-wrap gap-3">
+                      {CASE_STUDIES[selectedCaseStudy].features.map((f, i) => (
+                        <span key={i} className="px-4 py-2 bg-igo-lime/10 text-igo-dark text-[10px] font-black uppercase tracking-widest rounded-lg border border-igo-lime/20">
+                          {f}
+                        </span>
+                      ))}
+                   </div>
+                </div>
+
+                <button 
+                  onClick={() => setSelectedCaseStudy(null)}
+                  className="w-full bg-igo-dark text-white py-6 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-igo-lime hover:text-igo-dark transition-all"
+                >
+                  Close Case Study
+                </button>
+              </div>
+            </div>
+            
+            <button 
+              onClick={() => setSelectedCaseStudy(null)}
+              className="absolute top-6 right-6 p-3 bg-white/10 backdrop-blur rounded-full text-white hover:bg-white/20 transition-all lg:hidden"
+            >
+              <ArrowRight className="w-6 h-6 rotate-180" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

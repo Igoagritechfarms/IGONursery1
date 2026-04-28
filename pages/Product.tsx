@@ -1,77 +1,76 @@
 import React from 'react';
-import { ArrowLeft, ArrowRight, Package, ShoppingCart } from 'lucide-react';
-import { StoreProduct } from '../types';
+import { ArrowLeft, ArrowRight, Package, ShoppingCart, AlertCircle } from 'lucide-react';
+import { StoreProduct, Page } from '../types';
+import { NURSERY_PRODUCTS } from '../data/nurseryProducts';
+import { PLANT_SEEDS } from '../data/plantSeeds';
 
-type ProductItem = {
-  slug: string;
-  name: string;
-  category: string;
-  imageFile: string;
-  price: number;
-  mrp: number;
-  unit: string;
-  description: string;
+const PRODUCTS = NURSERY_PRODUCTS;
+
+const getProductImagePath = (fileName: string): string => {
+  if (!fileName) return '/images/placeholder.png';
+  return `/images/product%20nursery/${encodeURIComponent(fileName)}`;
 };
-
-interface ProductProps {
-  selectedSlug?: string | null;
-  onOpenProduct?: (slug: string) => void;
-  onAddToCart?: (product: StoreProduct) => void;
-}
-
-const PRODUCTS: ProductItem[] = [
-  { slug: 'plant-name-tag-stick', name: 'Plant name tag stick', category: 'Accessories', imageFile: 'Handmade to order.jpg', price: 99, mrp: 129, unit: 'Pack of 20', description: 'Reusable wooden tags for clean plant labeling and nursery organization.' },
-  { slug: 'plastic-hanging-hook', name: 'Plastic hanging hook', category: 'Accessories', imageFile: 'Plastic Biltong Hooks (pack Of 100).jpg', price: 149, mrp: 199, unit: 'Pack of 25', description: 'Durable lightweight hooks for hanging planters and nursery setups.' },
-  { slug: 'sprayer-head', name: 'Sprayer head', category: 'Watering', imageFile: 'sprayer-head.jpg', price: 449, mrp: 599, unit: 'Per piece', description: 'Multi-pattern spray head for controlled watering and cleaning.' },
-  { slug: 'seedling-tray', name: 'Seedling tray', category: 'Containers', imageFile: '96 Pcs 4 Inch Round Nursery Pots And 8 Pcs 12 Cell Plant Starter Trays Thick Stu.jpg', price: 349, mrp: 449, unit: 'Per set', description: 'Starter tray set designed for uniform seed germination and transplanting.' },
-  { slug: 'draincell', name: 'Draincell', category: 'Infrastructure', imageFile: 'HDPE drainage cell.jpg', price: 1250, mrp: 1500, unit: 'Per sheet', description: 'HDPE drainage layer for terrace gardens and landscape water management.' },
-  { slug: 'moss-stick', name: 'Moss stick', category: 'Support', imageFile: 'GKanMore 2Pcs Plant Climbing Pole 12 Inch Coir Moss Totem Pole Coir Moss Stick for Plant Support Extension.jpg', price: 299, mrp: 399, unit: 'Per piece', description: 'Coir stick support for climbing plants with better root adhesion.' },
-  { slug: 'plant-support-ring', name: 'Plant support ring', category: 'Support', imageFile: '12pcs Plant Support Plant Stake Half Round Plant Support Ring Garden Flower Supp.jpg', price: 199, mrp: 259, unit: 'Pack of 12', description: 'Half-round support rings to keep stems upright and protected.' },
-  { slug: 'spraygun', name: 'Spraygun', category: 'Watering', imageFile: 'download.jpg', price: 2499, mrp: 2999, unit: 'Per piece', description: 'Electric spraygun for fast and even spraying across larger areas.' },
-  { slug: 'handfork', name: 'Handfork', category: 'Tools', imageFile: 'hand-fork.jpg', price: 229, mrp: 299, unit: 'Per piece', description: 'Three-prong fork for loosening top soil and aerating planters.' },
-  { slug: 'sprayer', name: 'Sprayer', category: 'Watering', imageFile: 'VIVOSUN Battery Powered Backpack Electric.jpg', price: 3999, mrp: 4599, unit: 'Per piece', description: 'Backpack electric sprayer for maintenance and nutrient application.' },
-  { slug: 'khurpa-khurpi', name: 'Khurpa(Khurpi)', category: 'Tools', imageFile: 'Durable Gardening Hand Tool for Gardening - Khurpi_Khurpa (3 Inch Blade).jpg', price: 199, mrp: 249, unit: 'Per piece', description: 'Traditional hand blade for weeding, edging, and soil shaping.' },
-  { slug: 'garden-gloves', name: 'Garden gloves', category: 'Tools', imageFile: 'garden gloves with style.jpg', price: 249, mrp: 329, unit: 'Per pair', description: 'Protective gloves for safer and cleaner everyday gardening tasks.' },
-  { slug: 'hand-trowel', name: 'Hand trowel', category: 'Tools', imageFile: 'Essential Garden Hand Tools.jpg', price: 239, mrp: 299, unit: 'Per piece', description: 'Compact trowel for pot filling, transplanting, and root-zone work.' },
-  { slug: 'hand-cultivator', name: 'Hand cultivator', category: 'Tools', imageFile: 'Handegge verzinkt breit _ Manufactum.jpg', price: 299, mrp: 379, unit: 'Per piece', description: 'Wide-tooth cultivator for breaking surface crust and blending media.' },
-  { slug: 'hand-weeder-tool', name: 'Hand weeder tool', category: 'Tools', imageFile: 'hand-weeder-tool.jpg', price: 259, mrp: 329, unit: 'Per piece', description: 'Targeted weeder for root-level removal of unwanted growth.' },
-  { slug: 'gardening-scissor', name: 'Gardening scissor', category: 'Cutting', imageFile: 'gardening-scissor.jpg', price: 349, mrp: 449, unit: 'Per piece', description: 'Precision scissor for trimming soft stems and finishing cuts.' },
-  { slug: 'creeper-net', name: 'Creeper net', category: 'Support', imageFile: 'Square Mesh 10 1 mtr x 50 mtrs.jpg', price: 799, mrp: 950, unit: 'Per roll', description: 'Strong support mesh for creepers, vines, and vertical training.' },
-  { slug: 'grafting-tape', name: 'Grafting tape', category: 'Accessories', imageFile: '1pc Eco-Friendly Biodegradable Grafting Tape Graft Membrane Gardening Bind Belt Plant Grafting.jpg', price: 149, mrp: 199, unit: 'Per roll', description: 'Flexible biodegradable tape for secure and clean graft unions.' },
-  { slug: 'garden-hoe', name: 'Garden hoe', category: 'Tools', imageFile: 'download (1).jpg', price: 299, mrp: 379, unit: 'Per piece', description: 'Hand hoe for furrow making, shallow cultivation, and quick weeding.' },
-  { slug: 'shade-net', name: 'Shade net', category: 'Infrastructure', imageFile: 'Instahut 1_83x50m Heavy Duty Shade Cloth 30% UV Block Green.jpg', price: 2200, mrp: 2600, unit: 'Per roll', description: 'UV shade net for reducing heat stress in nurseries and grow areas.' },
-  { slug: 'plant-cutter', name: 'Plant cutter', category: 'Cutting', imageFile: 'plant-cutter.jpg', price: 399, mrp: 499, unit: 'Per piece', description: 'Spring-action cutter for clean branch pruning with low hand fatigue.' },
-  { slug: 'extension-garden-cutter', name: 'Extension garden cutter', category: 'Cutting', imageFile: 'download (2).jpg', price: 549, mrp: 699, unit: 'Per piece', description: 'Extended-reach cutter for hard-to-reach stems and edge maintenance.' },
-  { slug: 'pots', name: 'Pots', category: 'Containers', imageFile: 'Standard Cotto Terracotta Pot _ Burford Garden Co_.jpg', price: 199, mrp: 249, unit: 'Per piece', description: 'Terracotta-style pot for healthy root breathing and classic finish.' },
-  { slug: 'hanging-pots', name: 'Hanging pots', category: 'Containers', imageFile: '9 DIY Vertical Gardens for Better Herbs.jpg', price: 299, mrp: 379, unit: 'Per piece', description: 'Space-saving hanging pots ideal for balconies and vertical layouts.' },
-  { slug: 'cocopeat', name: 'cocopeat', category: 'Growing Media', imageFile: 'Cocopeat (germinating medium).jpg', price: 180, mrp: 240, unit: '5kg block', description: 'High-absorption growing medium for seed starting and potting blends.' },
-];
-
-const getProductImagePath = (fileName: string): string =>
-  `/images/product%20nursery/${encodeURIComponent(fileName)}`;
 
 const formatCurrency = (amount: number): string =>
   new Intl.NumberFormat('en-IN', {
     style: 'currency',
     currency: 'INR',
     maximumFractionDigits: 0,
-  }).format(amount);
+  }).format(amount || 0);
 
-const Product: React.FC<ProductProps> = ({ selectedSlug = null, onOpenProduct, onAddToCart }) => {
-  const selectedProduct = selectedSlug
-    ? PRODUCTS.find((product) => product.slug === selectedSlug) ?? null
+interface ProductProps {
+  products: StoreProduct[];
+  selectedSlug?: string | null;
+  onOpenProduct?: (slug: string) => void;
+  onAddToCart?: (product: StoreProduct) => void;
+}
+
+const Product: React.FC<ProductProps> = ({ products = [], selectedSlug = null, onOpenProduct, onAddToCart }) => {
+  let selectedProduct: any = selectedSlug
+    ? (products || []).find((product) => product && product.slug === selectedSlug) ||
+      (PRODUCTS || []).find((product) => product && product.slug === selectedSlug) ||
+      (() => {
+        const seedProd = (PLANT_SEEDS || []).find((s) => s && s.name.toLowerCase().replace(/ /g, '-') === selectedSlug);
+        if (seedProd) {
+          return {
+            id: `seed-${selectedSlug}`,
+            slug: selectedSlug,
+            name: seedProd.name,
+            category: seedProd.category,
+            image: seedProd.image,
+            price: 899,
+            description: `${seedProd.name} healthy nursery plant, acclimatized and ready for home gardens.`,
+            mrp: 1099,
+            unit: 'Per plant'
+          };
+        }
+        return null;
+      })()
     : null;
+
+  // Clone to avoid direct mutation of state/static data
+  if (selectedProduct) {
+    selectedProduct = { ...selectedProduct };
+    if (!selectedProduct.mrp) {
+      selectedProduct.mrp = Math.round((selectedProduct.price || 0) * 1.2);
+    }
+    if (!selectedProduct.unit) {
+      selectedProduct.unit = 'Per plant';
+    }
+  }
 
   const openProductPage = (slug: string) => {
     if (onOpenProduct) {
       onOpenProduct(slug);
-      return;
     }
-    window.location.hash = `product/${slug}`;
   };
 
   const openCatalog = () => {
-    window.location.hash = 'product';
+    if (onOpenProduct) {
+      (onOpenProduct as any)(Page.Product); 
+    } else {
+      window.location.hash = 'product';
+    }
   };
 
   if (selectedSlug && !selectedProduct) {
@@ -93,17 +92,11 @@ const Product: React.FC<ProductProps> = ({ selectedSlug = null, onOpenProduct, o
 
   if (selectedProduct) {
     const savings = selectedProduct.mrp - selectedProduct.price;
-    const relatedProducts = PRODUCTS.filter((item) => item.slug !== selectedProduct.slug).slice(0, 3);
+    const relatedProducts = (products || []).filter((item) => item && item.slug && item.slug !== selectedProduct.slug).slice(0, 3);
+    
     const handleAddCurrentProductToCart = () => {
-      if (!onAddToCart) return;
-      onAddToCart({
-        id: `product-${selectedProduct.slug}`,
-        name: selectedProduct.name,
-        price: selectedProduct.price,
-        category: selectedProduct.category,
-        image: getProductImagePath(selectedProduct.imageFile),
-        description: selectedProduct.description,
-      });
+      if (!onAddToCart || selectedProduct.outOfStock) return;
+      onAddToCart(selectedProduct);
     };
 
     return (
@@ -116,16 +109,26 @@ const Product: React.FC<ProductProps> = ({ selectedSlug = null, onOpenProduct, o
             >
               <ArrowLeft className="w-4 h-4" /> Back to Product List
             </button>
-            <h1 className="text-5xl md:text-6xl font-black tracking-tighter leading-[0.95]">{selectedProduct.name}</h1>
-            <p className="text-gray-300 text-lg mt-6 max-w-3xl">{selectedProduct.description}</p>
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+              <div>
+                <h1 className="text-5xl md:text-6xl font-black tracking-tighter leading-[0.95]">{selectedProduct.name}</h1>
+                <p className="text-gray-300 text-lg mt-6 max-w-3xl">{selectedProduct.description}</p>
+              </div>
+              {selectedProduct.outOfStock && (
+                <div className="bg-red-500/20 border border-red-500/50 px-6 py-3 rounded-2xl flex items-center gap-3 animate-pulse">
+                   <AlertCircle className="w-6 h-6 text-red-500" />
+                   <span className="text-sm font-black uppercase tracking-widest text-red-500">Currently Out of Stock</span>
+                </div>
+              )}
+            </div>
           </div>
         </section>
 
         <section className="py-16 bg-gray-50/50">
           <div className="max-w-7xl mx-auto px-4 grid lg:grid-cols-2 gap-10 items-start">
-            <div className="bg-white border border-gray-100 rounded-3xl p-5 shadow-sm">
+            <div className={`bg-white border border-gray-100 rounded-3xl p-5 shadow-sm ${selectedProduct.outOfStock ? 'grayscale-[0.5]' : ''}`}>
               <img
-                src={getProductImagePath(selectedProduct.imageFile)}
+                src={selectedProduct.image || getProductImagePath((selectedProduct as any).imageFile)}
                 alt={selectedProduct.name}
                 className="w-full h-[420px] object-cover rounded-2xl"
               />
@@ -134,7 +137,7 @@ const Product: React.FC<ProductProps> = ({ selectedSlug = null, onOpenProduct, o
             <div className="space-y-6">
               <div className="bg-white border border-gray-100 rounded-3xl p-8">
                 <div className="text-xs uppercase tracking-[0.2em] font-black text-igo-lime mb-3">{selectedProduct.category}</div>
-                <div className="text-4xl font-black text-igo-dark">{formatCurrency(selectedProduct.price)}</div>
+                <div className={`text-4xl font-black ${selectedProduct.outOfStock ? 'text-gray-400' : 'text-igo-dark'}`}>{formatCurrency(selectedProduct.price)}</div>
                 <div className="mt-2 text-sm text-igo-muted">
                   MRP <span className="line-through">{formatCurrency(selectedProduct.mrp)}</span> • You save {formatCurrency(savings)}
                 </div>
@@ -142,32 +145,38 @@ const Product: React.FC<ProductProps> = ({ selectedSlug = null, onOpenProduct, o
               </div>
 
               <div className="bg-white border border-gray-100 rounded-3xl p-8">
-                <h2 className="text-xl font-black mb-4">Price Details</h2>
-                <div className="space-y-3 text-sm">
-                  <div className="flex justify-between border-b border-gray-100 pb-2">
-                    <span className="text-igo-muted">Selling Price</span>
-                    <span className="font-bold text-igo-dark">{formatCurrency(selectedProduct.price)}</span>
+                <h2 className="text-xl font-black mb-4">Availability Intelligence</h2>
+                {selectedProduct.outOfStock ? (
+                  <div className="p-4 bg-red-50 rounded-2xl border border-red-100">
+                    <p className="text-xs font-bold text-red-800 leading-relaxed">
+                      This item is currently unavailable in our main nursery stock. Our horticultural team is working on replenishing this species.
+                    </p>
                   </div>
-                  <div className="flex justify-between border-b border-gray-100 pb-2">
-                    <span className="text-igo-muted">MRP</span>
-                    <span className="font-bold text-igo-dark">{formatCurrency(selectedProduct.mrp)}</span>
+                ) : (
+                  <div className="p-4 bg-green-50 rounded-2xl border border-green-100">
+                    <p className="text-xs font-bold text-green-800 leading-relaxed">
+                      In Stock: High-health specimen verified by IGO Lab. Ready for immediate dispatch from our regional hub.
+                    </p>
                   </div>
-                  <div className="flex justify-between border-b border-gray-100 pb-2">
-                    <span className="text-igo-muted">Savings</span>
-                    <span className="font-bold text-green-700">{formatCurrency(savings)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-igo-muted">Unit</span>
-                    <span className="font-bold text-igo-dark">{selectedProduct.unit}</span>
-                  </div>
-                </div>
+                )}
               </div>
 
               <button
+                disabled={selectedProduct.outOfStock}
                 onClick={handleAddCurrentProductToCart}
-                className="bg-igo-dark text-white px-8 py-4 rounded-xl font-black uppercase text-xs tracking-widest inline-flex items-center gap-3"
+                className={`w-full py-5 rounded-2xl font-black uppercase text-xs tracking-widest inline-flex items-center justify-center gap-3 shadow-xl transition-all ${
+                  selectedProduct.outOfStock
+                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    : 'bg-igo-dark text-white hover:bg-igo-charcoal active:scale-95'
+                }`}
               >
-                <ShoppingCart className="w-4 h-4" /> Add to Cart
+                {selectedProduct.outOfStock ? (
+                  <>Not Available</>
+                ) : (
+                  <>
+                    <ShoppingCart className="w-4 h-4" /> Add to Collection
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -183,7 +192,7 @@ const Product: React.FC<ProductProps> = ({ selectedSlug = null, onOpenProduct, o
                   onClick={() => openProductPage(item.slug)}
                   className="bg-white border border-gray-100 rounded-2xl p-4 text-left hover:shadow-lg transition-all"
                 >
-                  <img src={getProductImagePath(item.imageFile)} alt={item.name} className="w-full h-40 object-cover rounded-xl mb-4" />
+                  <img src={item.image || getProductImagePath((item as any).imageFile)} alt={item.name} className="w-full h-40 object-cover rounded-xl mb-4" />
                   <h4 className="font-black text-igo-dark mb-1">{item.name}</h4>
                   <div className="text-sm text-igo-muted">{formatCurrency(item.price)}</div>
                 </button>

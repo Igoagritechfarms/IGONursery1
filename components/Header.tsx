@@ -1,15 +1,17 @@
 
 import React, { useState } from 'react';
 import { Page } from '../types';
-import { ShoppingCart, Menu, Search, Zap, X, ChevronRight } from 'lucide-react';
+import { ShoppingCart, Menu, Search, Zap, X, ChevronRight, Package, BarChart3 } from 'lucide-react';
 
 interface HeaderProps {
   currentPage: Page;
   setCurrentPage: (p: Page) => void;
   cartCount: number;
+  isAdmin: boolean;
+  onToggleAdminMode: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ currentPage, setCurrentPage, cartCount }) => {
+const Header: React.FC<HeaderProps> = ({ currentPage, setCurrentPage, cartCount, isAdmin, onToggleAdminMode }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const navItems = [
@@ -67,7 +69,10 @@ const Header: React.FC<HeaderProps> = ({ currentPage, setCurrentPage, cartCount 
                 </div>
               </div>
               
-              <button className="p-2.5 text-igo-dark hover:bg-gray-50 rounded-xl transition-colors hidden md:block">
+              <button 
+                aria-label="Search products"
+                className="p-2.5 text-igo-dark hover:bg-gray-50 rounded-xl transition-colors hidden md:block"
+              >
                 <Search className="w-5 h-5" />
               </button>
               
@@ -79,6 +84,8 @@ const Header: React.FC<HeaderProps> = ({ currentPage, setCurrentPage, cartCount 
                 AI Assistant
               </button>
 
+
+
               <div className="relative ml-2">
                 <button
                   onClick={() => handleNav(Page.Cart)}
@@ -87,7 +94,7 @@ const Header: React.FC<HeaderProps> = ({ currentPage, setCurrentPage, cartCount 
                       ? 'bg-igo-dark text-white'
                       : 'text-igo-dark hover:bg-gray-50'
                   }`}
-                  aria-label="Open cart"
+                  aria-label="Open shopping cart"
                 >
                   <ShoppingCart className="w-5 h-5" />
                   {cartCount > 0 && (
@@ -98,7 +105,11 @@ const Header: React.FC<HeaderProps> = ({ currentPage, setCurrentPage, cartCount 
                 </button>
               </div>
               
-              <button onClick={() => setIsMenuOpen(true)} className="lg:hidden p-2.5 text-igo-dark bg-gray-50 rounded-xl ml-2">
+              <button 
+                onClick={() => setIsMenuOpen(true)} 
+                aria-label="Open navigation menu"
+                className="lg:hidden p-2.5 text-igo-dark bg-gray-50 rounded-xl ml-2"
+              >
                 <Menu className="w-6 h-6" />
               </button>
             </div>
@@ -121,7 +132,11 @@ const Header: React.FC<HeaderProps> = ({ currentPage, setCurrentPage, cartCount 
                 alt="IGO Agritechfarms"
                 className="h-14 w-auto rounded-lg border border-gray-100 shadow-sm object-contain bg-white"
              />
-             <button onClick={() => setIsMenuOpen(false)} className="p-2 bg-gray-100 rounded-full">
+             <button 
+                onClick={() => setIsMenuOpen(false)} 
+                aria-label="Close navigation menu"
+                className="p-2 bg-gray-100 rounded-full"
+             >
                 <X className="w-6 h-6" />
              </button>
           </div>
@@ -137,16 +152,31 @@ const Header: React.FC<HeaderProps> = ({ currentPage, setCurrentPage, cartCount 
                 <ChevronRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
               </button>
             ))}
+            
+
+            
             <button 
               onClick={() => handleNav(Page.Assistant)}
-              className="w-full flex items-center gap-3 p-4 rounded-2xl bg-igo-dark text-white font-bold mt-8 shadow-xl"
+              className="w-full flex items-center gap-3 p-4 rounded-2xl bg-igo-dark text-white font-bold mt-4 shadow-xl"
             >
               <Zap className="w-4 h-4 text-igo-lime" />
               <span className="uppercase tracking-widest text-sm">Garden Assistant</span>
             </button>
           </nav>
 
-          <div className="border-t pt-8">
+          <div className="border-t pt-8 space-y-4">
+            {isAdmin && (
+              <button
+                onClick={() => {
+                  onToggleAdminMode();
+                  setIsMenuOpen(false);
+                }}
+                className="w-full px-4 py-3 rounded-2xl font-bold text-sm uppercase tracking-wider transition-all bg-red-100 text-red-800 hover:bg-red-200"
+              >
+                🔐 Sign Out
+              </button>
+            )}
+            
             <div className="text-[10px] font-black text-igo-muted uppercase tracking-[0.2em] mb-4">Muttukadu Headquarters</div>
             <p className="text-sm text-gray-500 mb-6">ECR Road, Muttukadu, Chennai 603112</p>
             <button 
