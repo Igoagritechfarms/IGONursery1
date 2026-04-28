@@ -1,7 +1,6 @@
-
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import MainApp from './MainApp';
+import App from './App';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -11,6 +10,6 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <MainApp />
+    <App />
   </React.StrictMode>
 );
