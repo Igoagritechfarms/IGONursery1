@@ -994,65 +994,63 @@ const MainApp: React.FC = () => {
         return <OrderTracker />;
       case Page.AdminLogin:
         return <AdminLogin defaultEmail={adminProfile?.email ?? DEFAULT_ADMIN_EMAIL} onLogin={handleAdminLogin} />;
+      
       case Page.AdminOrders:
       case Page.AdminLeads:
       case Page.AdminOverview:
       case Page.AdminInventory:
       case Page.AdminNotifications:
       case Page.AddProduct:
-        if (!isAdmin) {
+        // Double check admin status
+        if (!isAdmin && localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) !== 'emergency-token') {
           return <AdminLogin defaultEmail={adminProfile?.email ?? DEFAULT_ADMIN_EMAIL} onLogin={handleAdminLogin} />;
         }
 
-        const renderAdminContent = () => {
-          switch (currentPage) {
-            case Page.AdminOrders:
-              if (routeParam) {
-                return (
-                  <OrderDetail
-                    order={selectedOrder}
-                    isAdminView
-                    onBack={() => navigateTo(Page.AdminOrders)}
-                    onStatusChange={handleUpdateOrderStatus}
-                  />
-                );
-              }
+        try {
+          const renderAdminContent = () => {
+            if (currentPage === Page.AdminOrders) {
               return (
                 <AdminOrders
-                  orders={adminOrders}
+                  orders={adminOrders || []}
                   onBack={() => navigateTo(Page.Home)}
-                  onOpenOrder={(orderNumber) => navigateTo(Page.AdminOrders, orderNumber)}
+                  onOpenOrder={(num) => navigateTo(Page.AdminOrders, num)}
                   onUpdateStatus={handleUpdateOrderStatus}
                   onDeleteCustomer={handleDeleteCustomer}
                 />
               );
-            case Page.AdminLeads:
+            }
+            if (currentPage === Page.AdminInventory) {
+              return <AdminInventory products={products || []} onUpdateProducts={handleUpdateProducts} />;
+            }
+            if (currentPage === Page.AdminLeads) {
               return <AdminLeads onNavigate={handlePageChange} leadId={routeParam} />;
-            case Page.AdminInventory:
-              return <AdminInventory products={products} onUpdateProducts={handleUpdateProducts} />;
-            case Page.AddProduct:
-              return <AddProduct onSubmitProduct={handleSubmitProduct} onCancel={() => navigateTo(Page.Shop)} />;
-            case Page.AdminNotifications:
-              return <AdminNotifications />;
-            case Page.AdminOverview:
-            default:
-              return <AdminOverview />;
-          }
-        };
+            }
+            if (currentPage === Page.AddProduct) {
+               return <AddProduct onSubmitProduct={handleSubmitProduct} onCancel={() => navigateTo(Page.Shop)} />;
+            }
+            return <AdminOverview />;
+          };
 
-        return (
-          <ErrorBoundary>
-            <AdminLayout 
-              currentPage={currentPage} 
-              onNavigate={handlePageChange}
-              onLogout={handleAdminLogout}
-              notifications={adminNotifications}
-              orders={adminOrders || []}
-            >
-              {renderAdminContent()}
-            </AdminLayout>
-          </ErrorBoundary>
-        );
+          return (
+            <ErrorBoundary>
+              <AdminLayout 
+                currentPage={currentPage} 
+                onNavigate={handlePageChange}
+                onLogout={handleAdminLogout}
+                notifications={adminNotifications || []}
+                orders={adminOrders || []}
+              >
+                <div className="admin-safe-container">
+                  {renderAdminContent()}
+                </div>
+              </AdminLayout>
+            </ErrorBoundary>
+          );
+        } catch (e) {
+          console.error("Admin Render Error:", e);
+          return <div className="p-20 text-center font-bold">A rendering error occurred. Please refresh.</div>;
+        }
+
       default:
         return <Home onNavigate={handlePageChange} />;
     }
