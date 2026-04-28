@@ -486,9 +486,10 @@ export const createCustomer = ({ email, name, phone, password }) => {
   const salt = createSalt();
   const hash = hashPassword(password, salt);
   const createdAt = new Date().toISOString();
+  const normalizedEmail = email.toLowerCase().trim();
   
-  insertCustomerStatement.run(email, name, phone, hash, salt, createdAt);
-  const customer = selectCustomerByEmailStatement.get(email);
+  insertCustomerStatement.run(normalizedEmail, name, phone, hash, salt, createdAt);
+  const customer = selectCustomerByEmailStatement.get(normalizedEmail);
   return findCustomerById(customer.id);
 };
 
@@ -514,7 +515,8 @@ export const findCustomerById = (id) => {
 };
 
 export const findCustomerByEmail = (email) => {
-  return selectCustomerByEmailStatement.get(email);
+  if (!email) return null;
+  return selectCustomerByEmailStatement.get(email.toLowerCase().trim());
 };
 
 export const createCustomerSession = ({ email, password, isBypassPassword }) => {

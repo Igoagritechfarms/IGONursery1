@@ -41,8 +41,11 @@ const CustomerAuth: React.FC<CustomerAuthProps> = ({ onLogin }) => {
     setError(null);
 
     try {
+      const email = formData.email.trim();
+      const password = formData.password.trim();
+
       if (mode === 'login') {
-        const loginRes = await customerApi.login({ email: formData.email, password: formData.password });
+        const loginRes = await customerApi.login({ email, password });
         if (loginRes.needsVerification) {
           setMode('verify');
           setSuccess('Security verification required. Please check your email for the code.');
@@ -51,17 +54,22 @@ const CustomerAuth: React.FC<CustomerAuthProps> = ({ onLogin }) => {
           onLogin(loginRes);
         }
       } else if (mode === 'signup') {
-        const signupRes = await customerApi.signup({ name: formData.name, email: formData.email, password: formData.password, phone: formData.phone });
+        const signupRes = await customerApi.signup({ 
+          name: formData.name.trim(), 
+          email, 
+          password, 
+          phone: formData.phone.trim() 
+        });
         if (signupRes.needsVerification) {
           setMode('verify');
           setSuccess('Signup initiated! Verification code sent to your email.');
           setTimeout(() => setSuccess(null), 3000);
         } else {
-          const session = await customerApi.login({ email: formData.email, password: formData.password });
+          const session = await customerApi.login({ email, password });
           onLogin(session);
         }
       } else if (mode === 'verify') {
-        const session = await customerApi.verifyOtp({ email: formData.email, otp: formData.otp });
+        const session = await customerApi.verifyOtp({ email, otp: formData.otp.trim() });
         if (session && session.token) {
           setSuccess('Access verified! Entering your dashboard...');
           setTimeout(() => onLogin(session), 1000);
@@ -74,13 +82,13 @@ const CustomerAuth: React.FC<CustomerAuthProps> = ({ onLogin }) => {
           }, 1500);
         }
       } else if (mode === 'forgot') {
-        await customerApi.forgotPassword(formData.email);
+        await customerApi.forgotPassword(email);
         setSuccess('If an account exists, a reset link has been sent to your email.');
       } else if (mode === 'reset') {
         if (formData.newPassword !== formData.confirmPassword) {
           throw new Error('Passwords do not match');
         }
-        await customerApi.resetPassword({ token: formData.token, newPassword: formData.newPassword });
+        await customerApi.resetPassword({ token: formData.token, newPassword: formData.newPassword.trim() });
         setSuccess('Password reset successfully! You can now log in.');
         setTimeout(() => {
           setMode('login');

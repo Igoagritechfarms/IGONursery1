@@ -466,6 +466,7 @@ const server = http.createServer(async (request, response) => {
 
     if (request.method === 'POST' && pathname === '/api/customer/signup') {
       const body = await readJsonBody(request);
+      if (body.email) body.email = body.email.trim().toLowerCase();
       if (body.password) body.password = body.password.trim();
       console.log('👤 Staged Signup Request:', { email: body.email, name: body.name });
       
@@ -554,10 +555,14 @@ const server = http.createServer(async (request, response) => {
 
     if (request.method === 'POST' && pathname === '/api/customer/login') {
       const body = await readJsonBody(request);
+      if (body.email) body.email = body.email.trim().toLowerCase();
       if (body.password) body.password = body.password.trim();
+      
+      console.log(`🔑 Login attempt for: ${body.email}`);
       const customer = findCustomerByEmail(body.email);
       
       if (!customer || !verifyCustomerPassword(customer.id, body.password)) {
+        console.log(`❌ Login failed for: ${body.email}`);
         sendJson(response, 401, { message: 'Invalid email or password.' });
         return;
       }
