@@ -674,7 +674,7 @@ export const findCustomerById = async (id) => {
 };
 
 export const findCustomerByEmail = async (email) => {
-  if (!email) return null;
+  if (!email || typeof email !== 'string') return null;
   const normalizedEmail = email.toLowerCase().trim();
 
   if (supabase) {

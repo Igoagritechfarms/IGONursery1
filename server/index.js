@@ -540,6 +540,8 @@ export const handler = async (request, response) => {
 
     if (request.method === 'POST' && pathname === '/api/customer/verify-otp') {
       const body = await readJsonBody(request);
+      if (body.email) body.email = body.email.trim().toLowerCase();
+      
       if (!body.email || !body.otp) {
         sendJson(response, 400, { message: 'Email and OTP are required.' });
         return;
@@ -554,6 +556,7 @@ export const handler = async (request, response) => {
       try {
         if (pending.type === 'signup') {
           const customer = await createCustomer(pending.payload);
+          await verifyCustomerOtp(customer.email, body.otp); // Mark as verified in DB
           await deletePendingVerification(body.email);
           console.log(`✅ Profile created for verified customer: ${customer.email}`);
           
@@ -566,13 +569,14 @@ export const handler = async (request, response) => {
           
           sendJson(response, 201, session);
         } else if (pending.type === 'login') {
+          await verifyCustomerOtp(body.email, body.otp); // Mark as verified in DB
           const session = await createCustomerSession({ 
-            email: pending.email, 
+            email: body.email, 
             password: pending.payload.password,
             isBypassPassword: true // Internally tell createCustomerSession to skip re-hash check if we already checked it
           });
           await deletePendingVerification(body.email);
-          console.log(`✅ 2FA successful for customer: ${pending.email}`);
+          console.log(`✅ 2FA successful for customer: ${body.email}`);
           sendJson(response, 200, session);
         }
       } catch (err) {
