@@ -76,22 +76,29 @@ const sendJson = (response, statusCode, payload) => {
 const notFound = (response) => sendJson(response, 404, { message: 'Endpoint not found.' });
 
 const readJsonBody = async (request) => {
-  // If body is already parsed (e.g. by Vercel/Express)
-  if (request.body) {
-    return typeof request.body === 'string' ? JSON.parse(request.body) : request.body;
+  // If Vercel/Middleware already parsed the body
+  if (request.body !== undefined && request.body !== null) {
+    if (typeof request.body === 'object') return request.body;
+    try {
+      return JSON.parse(request.body);
+    } catch (e) {
+      return {};
+    }
   }
 
-  const chunks = [];
-  for await (const chunk of request) {
-    chunks.push(chunk);
-  }
-
-  if (chunks.length === 0) {
+  // Fallback to reading the stream
+  try {
+    const chunks = [];
+    for await (const chunk of request) {
+      chunks.push(chunk);
+    }
+    if (chunks.length === 0) return {};
+    const rawBody = Buffer.concat(chunks).toString('utf8');
+    return JSON.parse(rawBody);
+  } catch (err) {
+    console.error('Error reading JSON body stream:', err);
     return {};
   }
-
-  const rawBody = Buffer.concat(chunks).toString('utf8');
-  return JSON.parse(rawBody);
 };
 
 const getBearerToken = (request) => {
@@ -103,9 +110,9 @@ const getBearerToken = (request) => {
   return header.slice('Bearer '.length).trim();
 };
 
-const requireAdmin = (request, response) => {
+const requireAdmin = async (request, response) => {
   const token = getBearerToken(request);
-  const session = getAdminSession(token);
+  const session = await getAdminSession(token);
   if (!session) {
     sendJson(response, 401, { message: 'Unauthorized' });
     return null;
@@ -312,13 +319,14 @@ export const handler = async (request, response) => {
             }
           }
         }
+      }
 
       sendJson(response, 200, { order: fullOrder });
       return;
     }
 
     if (request.method === 'DELETE' && pathname.startsWith('/api/admin/customer/')) {
-      const session = requireAdmin(request, response);
+      const session = await requireAdmin(request, response);
       if (!session) return;
 
       const id = pathname.split('/').pop();
@@ -524,6 +532,7 @@ export const handler = async (request, response) => {
         sendJson(response, 200, { success: true, needsVerification: true, email: body.email });
       } catch (err) {
         console.error('❌ Staged signup error:', err);
+        if (err.stack) console.error(err.stack);
         sendJson(response, 500, { message: `Signup initialization failed: ${err.message}` });
       }
       return;
@@ -568,7 +577,8 @@ export const handler = async (request, response) => {
         }
       } catch (err) {
         console.error('❌ Verification completion error:', err);
-        sendJson(response, 500, { message: 'System error during verification finalization.' });
+        if (err.stack) console.error(err.stack);
+        sendJson(response, 500, { message: `System error during verification finalization: ${err.message}` });
       }
       return;
     }
@@ -724,6 +734,7 @@ export const handler = async (request, response) => {
           console.error(`❌ SMTP Error sending reset to ${customer.email}:`, mailErr.message);
         }
       }
+    }
       
       // Always return 200 for security
       sendJson(response, 200, { message: 'If an account exists, a reset link has been sent.' });

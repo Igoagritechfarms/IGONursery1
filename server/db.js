@@ -10,10 +10,21 @@ let realDb = null;
 
 // Only attempt local SQLite initialization if NOT on Vercel
 // Vercel uses a read-only filesystem where SQLite writes will fail.
-let realDb = null;
-console.log('🚀 Production mode: Using Supabase Cloud Database.');
+if (!process.env.VERCEL) {
+  try {
+    const Database = (await import('better-sqlite3')).default;
+    realDb = new Database(DB_PATH);
+    console.log('📦 Local SQLite Database connected.');
+  } catch (err) {
+    console.warn('⚠️ SQLite initialization failed (better-sqlite3 might be missing or incompatible):', err.message);
+  }
+}
 
-// Fallback to a dummy object to prevent crashes on Vercel/Production
+if (!realDb) {
+  console.log('🚀 Production mode: Using Supabase Cloud Database.');
+}
+
+// Fallback to a dummy object to prevent crashes if both Supabase and SQLite are unavailable
 const db = realDb || {
   exec: () => ({}),
   prepare: () => ({
@@ -50,6 +61,9 @@ db.exec(`
     phone TEXT,
     password_hash TEXT NOT NULL,
     password_salt TEXT NOT NULL,
+    is_verified INTEGER DEFAULT 0,
+    otp_code TEXT,
+    otp_expires TEXT,
     created_at TEXT NOT NULL
   );
   CREATE TABLE IF NOT EXISTS pending_verifications (
@@ -609,6 +623,9 @@ export const createCustomer = async ({ email, name, phone, password }) => {
 
   insertCustomerStatement.run(normalizedEmail, name, phone, hash, salt, createdAt);
   const customer = selectCustomerByEmailStatement.get(normalizedEmail);
+  if (!customer) {
+    throw new Error(`Failed to retrieve created customer profile for ${normalizedEmail}. Possible database write failure.`);
+  }
   return findCustomerById(customer.id);
 };
 
@@ -1034,10 +1051,15 @@ export const createPendingVerification = async (email, type, payload, otp, expir
     return;
   }
 
-  db.prepare(`
-    INSERT OR REPLACE INTO pending_verifications (email, type, payload, otp_code, expires_at)
-    VALUES (?, ?, ?, ?, ?)
-  `).run(email, type, JSON.stringify(payload), otp, expires);
+  try {
+    db.prepare(`
+      INSERT OR REPLACE INTO pending_verifications (email, type, payload, otp_code, expires_at)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(email, type, JSON.stringify(payload), otp, expires);
+  } catch (err) {
+    console.error('❌ SQLite Pending Verification Error:', err.message);
+    throw err;
+  }
 };
 
 export const getPendingVerification = async (email) => {
