@@ -816,8 +816,20 @@ export const handler = async (request, response) => {
 
     notFound(response);
   } catch (error) {
-    console.error(error);
-    sendJson(response, 500, { message: 'Internal server error.' });
+    console.error('🔴 GLOBAL API ERROR:', error);
+    
+    // Ensure we only send the error if headers haven't been sent yet
+    if (!response.writableEnded) {
+      const errorMessage = error.message || 'An unexpected internal error occurred.';
+      const statusCode = error.status || 500;
+      
+      response.writeHead(statusCode, { 'Content-Type': 'application/json' });
+      response.end(JSON.stringify({ 
+        success: false,
+        message: `System Error: ${errorMessage}`,
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      }));
+    }
   }
 };
 
