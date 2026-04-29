@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import { DatabaseSync } from 'node:sqlite';
+// Dynamic import for experimental SQLite feature to avoid crashes on older Node.js versions
 import { supabase } from './supabaseClient.js';
 import { ADMIN_EMAIL, ADMIN_PASSWORD, DATA_DIR, DB_PATH, SESSION_TTL_MS } from './config.js';
 import { createSalt, createToken, hashPassword, verifyPassword } from './auth.js';
@@ -10,6 +10,7 @@ let realDb = null;
 if (!process.env.VERCEL || !supabase) {
   try {
     fs.mkdirSync(DATA_DIR, { recursive: true });
+    const { DatabaseSync } = await import('node:sqlite');
     realDb = new DatabaseSync(DB_PATH);
     realDb.exec('PRAGMA foreign_keys = ON;');
   } catch (err) {
