@@ -129,50 +129,25 @@ const isAllowedStatus = (status) =>
 
 let mailTransporter = null;
 
-const setupTransporter = () => {
+const getTransporter = async () => {
+  if (mailTransporter) return mailTransporter;
+  
   if (SMTP_USER && SMTP_PASS) {
     mailTransporter = nodemailer.createTransport({
       host: SMTP_HOST,
       port: SMTP_PORT,
-      secure: SMTP_PORT === 465, // true for 465, false for other ports
+      secure: SMTP_PORT === 465,
       auth: {
         user: SMTP_USER,
         pass: SMTP_PASS,
       },
-      connectionTimeout: 10000, // 10 seconds timeout
+      connectionTimeout: 10000,
       greetingTimeout: 10000,
     });
-    console.log('📧 Real SMTP Transporter (Gmail) configured.');
-  } else {
-    nodemailer.createTestAccount((err, account) => {
-      if (err) {
-        console.error('Failed to create a testing account. ' + err.message);
-        return;
-      }
-      mailTransporter = nodemailer.createTransport({
-        host: account.smtp.host,
-        port: account.smtp.port,
-        secure: account.smtp.secure,
-        auth: {
-          user: account.user,
-          pass: account.pass
-        }
-      });
-      console.log('📧 Nodemailer testing wrapper configured successfully.');
-    });
+    console.log('📧 SMTP Transporter initialized on-demand.');
   }
+  return mailTransporter;
 };
-
-    setupTransporter();
-    if (mailTransporter) {
-      mailTransporter.verify((error, success) => {
-        if (error) {
-          console.error('❌ SMTP Connection Error - Emails will NOT be sent:', error.message);
-        } else {
-          console.log('✅ SMTP Server is AUTHENTICATED and ready to send customer emails');
-        }
-      });
-    }
 
 export const handler = async (request, response) => {
   const requestUrl = new URL(request.url || '/', `http://${request.headers.host}`);
@@ -321,8 +296,10 @@ export const handler = async (request, response) => {
             const emailData = buildGenericStatusEmail(fullOrder, body.status);
             console.log(`✉️ Sending update email to: ${fullOrder.customerEmail}`);
             
-            try {
-              await mailTransporter.sendMail({
+            const transporter = await getTransporter();
+            if (transporter) {
+              try {
+                await transporter.sendMail({
                 from: `"IGO Nursery" <${SMTP_USER || 'orders@igo.local'}>`,
                 to: fullOrder.customerEmail,
                 subject: subject,
@@ -417,11 +394,12 @@ export const handler = async (request, response) => {
       }
 
       // Send Order Confirmation Email
-      if (mailTransporter) {
+      const transporter = await getTransporter();
+      if (transporter) {
         try {
           console.log(`✉️ Sending order confirmation email to ${body.customerEmail}...`);
           const emailData = buildOrderConfirmedEmail(order);
-          await mailTransporter.sendMail({
+          await transporter.sendMail({
             from: `"IGO Nursery" <${SMTP_USER || 'orders@igo.local'}>`,
             to: body.customerEmail,
             subject: `Order Confirmed: #${body.orderNumber}`,
@@ -525,10 +503,11 @@ export const handler = async (request, response) => {
         console.log(`🔐 STAGED SIGNUP OTP FOR ${body.email}: ${otp}`);
         console.log('*'.repeat(40) + '\n');
         
-        if (mailTransporter) {
+        const transporter = await getTransporter();
+        if (transporter) {
           try {
             console.log(`✉️ Attempting to send signup OTP to ${body.email}...`);
-            await mailTransporter.sendMail({
+            await transporter.sendMail({
               from: `"IGO Nursery" <${SMTP_USER || 'orders@igo.local'}>`,
               to: body.email,
               subject: '🌿 Verify Your IGO Nursery Account',
@@ -619,9 +598,10 @@ export const handler = async (request, response) => {
       console.log(`🔐 LOGIN 2FA OTP FOR ${body.email}: ${otp}`);
       console.log('!'.repeat(40) + '\n');
       
-      if (mailTransporter) {
+      const transporter = await getTransporter();
+      if (transporter) {
         try {
-          await mailTransporter.sendMail({
+          await transporter.sendMail({
             from: `"IGO Nursery" <${SMTP_USER || 'orders@igo.local'}>`,
             to: body.email,
             subject: '🔐 Your IGO Nursery Login Code',
@@ -729,9 +709,10 @@ export const handler = async (request, response) => {
         console.log(`🔗 Reset Link: ${resetUrl}`);
         console.log('='.repeat(60) + '\n');
 
-        if (mailTransporter) {
+        const transporter = await getTransporter();
+        if (transporter) {
           try {
-            await mailTransporter.sendMail({
+            await transporter.sendMail({
               from: `"IGO Nursery" <${SMTP_USER || 'orders@igo.local'}>`,
               to: customer.email,
               subject: '🔑 Reset Your IGO Nursery Password',
