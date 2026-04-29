@@ -502,10 +502,21 @@ export const handler = async (request, response) => {
 
       try {
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        const expires = new Date(Date.now() + 15 * 60000).toISOString();
+        const expires = new Date(Date.now() + 15 * 60000).getTime();
+        
+        // Stateless OTP Fix: We sign the OTP into a secure cookie so Vercel doesn't lose it if DB is missing
+        const crypto = await import('node:crypto');
+        const payloadStr = JSON.stringify({ email: body.email, otp, expires, type: 'signup', payload: body });
+        const signature = crypto.createHmac('sha256', process.env.JWT_SECRET || 'secret').update(payloadStr).digest('hex');
+        const cookieVal = Buffer.from(payloadStr).toString('base64') + '.' + signature;
+        response.setHeader('Set-Cookie', `igo_otp_session=${cookieVal}; HttpOnly; Path=/; Max-Age=900; SameSite=Lax`);
         
         console.log(`📝 Creating pending verification for ${body.email}...`);
-        await createPendingVerification(body.email, 'signup', body, otp, expires);
+        try {
+          await createPendingVerification(body.email, 'signup', body, otp, new Date(expires).toISOString());
+        } catch(e) {
+          console.warn('⚠️ DB Pending Verification failed, relying on secure cookie fallback.');
+        }
         
         console.log('\n' + '*'.repeat(40));
         console.log(`🔐 STAGED SIGNUP OTP FOR ${body.email}: ${otp}`);
@@ -542,12 +553,42 @@ export const handler = async (request, response) => {
       const body = await readJsonBody(request);
       if (body.email) body.email = body.email.trim().toLowerCase();
       
-      if (!body.email || !body.otp) {
-        sendJson(response, 400, { message: 'Email and OTP are required.' });
+      if (!body.otp) {
+        sendJson(response, 400, { message: 'OTP is required.' });
         return;
       }
       
-      const pending = await getPendingVerification(body.email);
+      const cookies = request.headers.cookie || '';
+      const match = cookies.match(/igo_otp_session=([^;]+)/);
+      let pending = null;
+      
+      if (match) {
+        const cookieVal = match[1];
+        const [payloadBase64, signature] = cookieVal.split('.');
+        const crypto = await import('node:crypto');
+        const expectedSignature = crypto.createHmac('sha256', process.env.JWT_SECRET || 'secret').update(Buffer.from(payloadBase64, 'base64').toString()).digest('hex');
+        
+        if (signature === expectedSignature) {
+          const cookieData = JSON.parse(Buffer.from(payloadBase64, 'base64').toString());
+          if (cookieData.email === body.email) {
+            pending = {
+              otp_code: cookieData.otp,
+              expires_at: new Date(cookieData.expires).toISOString(),
+              type: cookieData.type,
+              payload: cookieData.payload
+            };
+            console.log(`✅ Loaded pending verification for ${body.email} from secure cookie.`);
+          }
+        } else {
+          console.warn('⚠️ Invalid OTP cookie signature detected.');
+        }
+      }
+      
+      if (!pending) {
+        // Fallback to DB if cookie is missing/invalid
+        pending = await getPendingVerification(body.email);
+      }
+      
       if (!pending || String(pending.otp_code) !== String(body.otp) || new Date(pending.expires_at) < new Date()) {
         const debugInfo = `pending=${!!pending}, otpMatch=${pending ? String(pending.otp_code) === String(body.otp) : false}`;
         console.error(`❌ OTP Verification failed for ${body.email}:`, {
@@ -560,6 +601,9 @@ export const handler = async (request, response) => {
         sendJson(response, 400, { message: `Invalid or expired OTP. (Debug: ${debugInfo})` });
         return;
       }
+      
+      // Clear the cookie once used
+      response.setHeader('Set-Cookie', 'igo_otp_session=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax');
 
       try {
         if (pending.type === 'signup') {
@@ -611,10 +655,20 @@ export const handler = async (request, response) => {
 
       // Password is correct, now initiate 2FA
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      const expires = new Date(Date.now() + 10 * 60000).toISOString(); // 10 mins for login OTP
+      const expires = new Date(Date.now() + 10 * 60000).getTime(); // 10 mins for login OTP
+      
+      const crypto = await import('node:crypto');
+      const payloadStr = JSON.stringify({ email: body.email, otp, expires, type: 'login', payload: { password: body.password } });
+      const signature = crypto.createHmac('sha256', process.env.JWT_SECRET || 'secret').update(payloadStr).digest('hex');
+      const cookieVal = Buffer.from(payloadStr).toString('base64') + '.' + signature;
+      response.setHeader('Set-Cookie', `igo_otp_session=${cookieVal}; HttpOnly; Path=/; Max-Age=600; SameSite=Lax`);
       
       // Store payload including password to recreate session on verify
-      await createPendingVerification(body.email, 'login', { password: body.password }, otp, expires);
+      try {
+        await createPendingVerification(body.email, 'login', { password: body.password }, otp, new Date(expires).toISOString());
+      } catch(e) {
+        console.warn('⚠️ DB Pending Verification failed, relying on secure cookie fallback.');
+      }
       
       console.log('\n' + '!'.repeat(40));
       console.log(`🔐 LOGIN 2FA OTP FOR ${body.email}: ${otp}`);
