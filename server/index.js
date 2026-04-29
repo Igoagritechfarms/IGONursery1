@@ -56,7 +56,7 @@ import {
 
 const LOGO_ATTACHMENT = {
   filename: 'igo-logo.jpg',
-  path: path.join(ROOT_DIR, 'public', 'images', 'branding', 'igo-logo.jpg'),
+  path: 'https://igonursery.com/images/branding/igo-logo.jpg',
   cid: 'logo',
   contentDisposition: 'inline'
 };
@@ -139,6 +139,8 @@ const setupTransporter = () => {
         user: SMTP_USER,
         pass: SMTP_PASS,
       },
+      connectionTimeout: 10000, // 10 seconds timeout
+      greetingTimeout: 10000,
     });
     console.log('📧 Real SMTP Transporter (Gmail) configured.');
   } else {
