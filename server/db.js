@@ -10,21 +10,8 @@ let realDb = null;
 
 // Only attempt local SQLite initialization if NOT on Vercel
 // Vercel uses a read-only filesystem where SQLite writes will fail.
-if (!process.env.VERCEL) {
-  try {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true });
-    }
-    const { DatabaseSync } = await import('node:sqlite');
-    realDb = new DatabaseSync(DB_PATH);
-    realDb.exec('PRAGMA foreign_keys = ON;');
-    console.log('✅ Local SQLite database initialized.');
-  } catch (err) {
-    console.error('ℹ️ Local SQLite not available or failed to init (expected on some productions):', err.message);
-  }
-} else {
-  console.log('🚀 Running in Vercel/Production mode - skipping local SQLite.');
-}
+let realDb = null;
+console.log('🚀 Production mode: Using Supabase Cloud Database.');
 
 // Fallback to a dummy object to prevent crashes on Vercel/Production
 const db = realDb || {
