@@ -319,13 +319,18 @@ export const handler = async (request, response) => {
             const emailData = buildGenericStatusEmail(fullOrder, body.status);
             console.log(`✉️ Sending update email to: ${fullOrder.customerEmail}`);
             
-            mailTransporter.sendMail({
-              from: `"IGO Nursery" <${SMTP_USER || 'orders@igo.local'}>`,
-              to: fullOrder.customerEmail,
-              subject: subject,
-              html: emailData.html,
-              attachments: [LOGO_ATTACHMENT]
-            }).catch(err => console.error('❌ SMTP Error:', err.message));
+            try {
+              await mailTransporter.sendMail({
+                from: `"IGO Nursery" <${SMTP_USER || 'orders@igo.local'}>`,
+                to: fullOrder.customerEmail,
+                subject: subject,
+                html: emailData.html,
+                attachments: [LOGO_ATTACHMENT]
+              });
+              console.log(`✅ Update email sent successfully to ${fullOrder.customerEmail}`);
+            } catch (mailErr) {
+              console.error(`❌ SMTP Error sending update to ${fullOrder.customerEmail}:`, mailErr.message);
+            }
           }
         }
 
@@ -407,6 +412,24 @@ export const handler = async (request, response) => {
           message: `Successfully placed order #${body.orderNumber}. You can track its status in your inbox.`
         });
         console.log(`🔔 Confirmation notification created for customer ${body.customerId}`);
+      }
+
+      // Send Order Confirmation Email
+      if (mailTransporter) {
+        try {
+          console.log(`✉️ Sending order confirmation email to ${body.customerEmail}...`);
+          const emailData = buildOrderConfirmedEmail(order);
+          await mailTransporter.sendMail({
+            from: `"IGO Nursery" <${SMTP_USER || 'orders@igo.local'}>`,
+            to: body.customerEmail,
+            subject: `Order Confirmed: #${body.orderNumber}`,
+            html: emailData.html,
+            attachments: [LOGO_ATTACHMENT]
+          });
+          console.log(`✅ Order confirmation sent to ${body.customerEmail}`);
+        } catch (mailErr) {
+          console.error(`❌ SMTP Error sending order confirmation to ${body.customerEmail}:`, mailErr.message);
+        }
       }
 
       sendJson(response, 201, {
@@ -595,13 +618,19 @@ export const handler = async (request, response) => {
       console.log('!'.repeat(40) + '\n');
       
       if (mailTransporter) {
-        mailTransporter.sendMail({
-          from: `"IGO Nursery" <${SMTP_USER || 'orders@igo.local'}>`,
-          to: body.email,
-          subject: '🔐 Your IGO Nursery Login Code',
-          html: `<!DOCTYPE html><html><body style="font-family:'Segoe UI',Arial,sans-serif;background:#f1f8f4;padding:32px;"><table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center"><table width="520" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);"><tr><td style="background:linear-gradient(135deg,#1b5e20,#2d7a3a);padding:28px 40px;text-align:center;"><img src="cid:logo" alt="Logo" width="80" style="border-radius:12px;border:3px solid rgba(255,255,255,0.4);margin-bottom:12px;background:#fff;" /><div style="color:#fff;font-size:22px;font-weight:900;">IGO Nursery</div></td></tr><tr><td style="padding:36px 40px;"><h2 style="color:#1b5e20;margin:0 0 12px;">Login Verification</h2><p style="color:#555;line-height:1.7;">Hello <b>${customer.name}</b>,<br><br>Use the code below to complete your login.</p><div style="text-align:center;margin:28px 0;"><div style="display:inline-block;background:#e8f5e9;border:2px dashed #2d7a3a;border-radius:12px;padding:16px 40px;"><div style="font-size:36px;font-weight:900;letter-spacing:12px;color:#1b5e20;">${otp}</div></div></div><p style="color:#888;font-size:13px;text-align:center;">This code expires in 10 minutes.</p><hr style="border:none;border-top:1px solid #e0f2e9;margin:24px 0;"><p style="color:#aaa;font-size:12px;text-align:center;">If you didn't request this, please ignore this email.</p></td></tr></table></td></tr></table></body></html>`,
-          attachments: [LOGO_ATTACHMENT]
-        });
+        try {
+          await mailTransporter.sendMail({
+            from: `"IGO Nursery" <${SMTP_USER || 'orders@igo.local'}>`,
+            to: body.email,
+            subject: '🔐 Your IGO Nursery Login Code',
+            html: `<!DOCTYPE html><html><body style="font-family:'Segoe UI',Arial,sans-serif;background:#f1f8f4;padding:32px;"><table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center"><table width="520" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);"><tr><td style="background:linear-gradient(135deg,#1b5e20,#2d7a3a);padding:28px 40px;text-align:center;"><img src="cid:logo" alt="Logo" width="80" style="border-radius:12px;border:3px solid rgba(255,255,255,0.4);margin-bottom:12px;background:#fff;" /><div style="color:#fff;font-size:22px;font-weight:900;">IGO Nursery</div></td></tr><tr><td style="padding:36px 40px;"><h2 style="color:#1b5e20;margin:0 0 12px;">Login Verification</h2><p style="color:#555;line-height:1.7;">Hello <b>${customer.name}</b>,<br><br>Use the code below to complete your login.</p><div style="text-align:center;margin:28px 0;"><div style="display:inline-block;background:#e8f5e9;border:2px dashed #2d7a3a;border-radius:12px;padding:16px 40px;"><div style="font-size:36px;font-weight:900;letter-spacing:12px;color:#1b5e20;">${otp}</div></div></div><p style="color:#888;font-size:13px;text-align:center;">This code expires in 10 minutes.</p><hr style="border:none;border-top:1px solid #e0f2e9;margin:24px 0;"><p style="color:#aaa;font-size:12px;text-align:center;">If you didn't request this, please ignore this email.</p></td></tr></table></td></tr></table></body></html>`,
+            attachments: [LOGO_ATTACHMENT]
+          });
+          console.log(`✅ Login OTP sent successfully to ${body.email}`);
+        } catch (mailErr) {
+          console.error(`❌ SMTP Error sending login OTP to ${body.email}:`, mailErr.message);
+          // Don't fail the whole request, but log it clearly
+        }
       }
       
       sendJson(response, 200, { success: true, needsVerification: true, email: body.email });
@@ -699,13 +728,17 @@ export const handler = async (request, response) => {
         console.log('='.repeat(60) + '\n');
 
         if (mailTransporter) {
-          mailTransporter.sendMail({
-            from: `"IGO Nursery" <${SMTP_USER || 'orders@igo.local'}>`,
-            to: customer.email,
-            subject: '🔑 Reset Your IGO Nursery Password',
+          try {
+            await mailTransporter.sendMail({
+              from: `"IGO Nursery" <${SMTP_USER || 'orders@igo.local'}>`,
+              to: customer.email,
+              subject: '🔑 Reset Your IGO Nursery Password',
             html: `<!DOCTYPE html><html><body style="font-family:'Segoe UI',Arial,sans-serif;background:#f1f8f4;padding:32px;"><table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center"><table width="520" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);"><tr><td style="background:linear-gradient(135deg,#1b5e20,#2d7a3a);padding:28px 40px;text-align:center;"><img src="cid:logo" alt="Logo" width="80" style="border-radius:12px;border:3px solid rgba(255,255,255,0.4);margin-bottom:12px;background:#fff;" /><div style="color:#fff;font-size:22px;font-weight:900;">IGO Nursery</div></td></tr><tr><td style="padding:36px 40px;"><h2 style="color:#1b5e20;margin:0 0 12px;">Password Reset Request</h2><p style="color:#555;line-height:1.7;">Hello <b>${customer.name}</b>,<br><br>We received a request to reset your password. Click the button below to set a new one.</p><div style="text-align:center;margin:28px 0;"><a href="${resetUrl}" style="display:inline-block;background:#2d7a3a;color:#fff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 36px;border-radius:50px;">Reset My Password</a></div><p style="color:#888;font-size:13px;text-align:center;">This link expires in 1 hour.</p><hr style="border:none;border-top:1px solid #e0f2e9;margin:24px 0;"><p style="color:#aaa;font-size:12px;text-align:center;">If you didn't request this, you can safely ignore this email.</p></td></tr></table></td></tr></table></body></html>`,
             attachments: [LOGO_ATTACHMENT]
           });
+          console.log(`✅ Reset email sent successfully to ${customer.email}`);
+        } catch (mailErr) {
+          console.error(`❌ SMTP Error sending reset to ${customer.email}:`, mailErr.message);
         }
       }
       
