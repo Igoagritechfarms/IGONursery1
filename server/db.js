@@ -6,11 +6,29 @@ import { createSalt, createToken, hashPassword, verifyPassword } from './auth.js
 
 export { createSalt, createToken, hashPassword, verifyPassword };
 
-fs.mkdirSync(DATA_DIR, { recursive: true });
+let realDb = null;
+if (!process.env.VERCEL || !supabase) {
+  try {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+    realDb = new DatabaseSync(DB_PATH);
+    realDb.exec('PRAGMA foreign_keys = ON;');
+  } catch (err) {
+    console.error('Failed to initialize local SQLite database:', err.message);
+  }
+}
 
-const db = new DatabaseSync(DB_PATH);
-db.exec('PRAGMA foreign_keys = ON;');
+// Fallback to a dummy object to prevent crashes on Vercel/Production
+const db = realDb || {
+  exec: () => ({}),
+  prepare: () => ({
+    get: () => null,
+    all: () => [],
+    run: () => ({ lastInsertRowid: 0, changes: 0 }),
+    setReadonly: () => ({}),
+  })
+};
 
+if (realDb) {
 db.exec(`
   CREATE TABLE IF NOT EXISTS admins (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -104,20 +122,24 @@ db.exec(`
     FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
   );
 `);
+}
 
-// Support Migrations for existing DB
-try { db.exec('ALTER TABLE orders ADD COLUMN customer_id INTEGER;'); } catch (e) {}
-try { db.exec('ALTER TABLE orders ADD COLUMN last_four TEXT;'); } catch (e) {}
-try { db.exec('ALTER TABLE customers ADD COLUMN email_notifications INTEGER DEFAULT 1;'); } catch (e) {}
-try { db.exec('ALTER TABLE customers ADD COLUMN reset_token TEXT;'); } catch (e) {}
-try { db.exec('ALTER TABLE customers ADD COLUMN reset_expires TEXT;'); } catch (e) {}
-try { db.exec('ALTER TABLE customers ADD COLUMN is_verified INTEGER DEFAULT 0;'); } catch (e) {}
-try { db.exec('ALTER TABLE customers ADD COLUMN otp_code TEXT;'); } catch (e) {}
-try { db.exec('ALTER TABLE customers ADD COLUMN otp_expires TEXT;'); } catch (e) {}
-try { db.exec('ALTER TABLE customers ADD COLUMN deletion_requested INTEGER DEFAULT 0;'); } catch (e) {}
 
-// For existing users, force them to be verified so they aren't locked out due to previous incomplete flows
-try { db.exec('UPDATE customers SET is_verified = 1 WHERE is_verified = 0;'); } catch (e) {}
+if (realDb) {
+  // Support Migrations for existing DB
+  try { db.exec('ALTER TABLE orders ADD COLUMN customer_id INTEGER;'); } catch (e) {}
+  try { db.exec('ALTER TABLE orders ADD COLUMN last_four TEXT;'); } catch (e) {}
+  try { db.exec('ALTER TABLE customers ADD COLUMN email_notifications INTEGER DEFAULT 1;'); } catch (e) {}
+  try { db.exec('ALTER TABLE customers ADD COLUMN reset_token TEXT;'); } catch (e) {}
+  try { db.exec('ALTER TABLE customers ADD COLUMN reset_expires TEXT;'); } catch (e) {}
+  try { db.exec('ALTER TABLE customers ADD COLUMN is_verified INTEGER DEFAULT 0;'); } catch (e) {}
+  try { db.exec('ALTER TABLE customers ADD COLUMN otp_code TEXT;'); } catch (e) {}
+  try { db.exec('ALTER TABLE customers ADD COLUMN otp_expires TEXT;'); } catch (e) {}
+  try { db.exec('ALTER TABLE customers ADD COLUMN deletion_requested INTEGER DEFAULT 0;'); } catch (e) {}
+
+  // For existing users, force them to be verified so they aren't locked out due to previous incomplete flows
+  try { db.exec('UPDATE customers SET is_verified = 1 WHERE is_verified = 0;'); } catch (e) {}
+}
 
 const insertAdminStatement = db.prepare(`
   INSERT INTO admins (email, name, password_hash, password_salt, created_at)
