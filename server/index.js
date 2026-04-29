@@ -76,6 +76,11 @@ const sendJson = (response, statusCode, payload) => {
 const notFound = (response) => sendJson(response, 404, { message: 'Endpoint not found.' });
 
 const readJsonBody = async (request) => {
+  // If body is already parsed (e.g. by Vercel/Express)
+  if (request.body) {
+    return typeof request.body === 'string' ? JSON.parse(request.body) : request.body;
+  }
+
   const chunks = [];
   for await (const chunk of request) {
     chunks.push(chunk);
