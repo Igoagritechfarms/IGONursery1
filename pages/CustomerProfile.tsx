@@ -181,58 +181,69 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({
       <div className="max-w-7xl mx-auto relative z-10">
         <div className="flex flex-col lg:flex-row gap-8 items-start">
         {/* Sidebar Nav */}
-        <div className="lg:w-96 flex-shrink-0 w-full">
-          <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] p-8 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] border border-white/40 sticky top-28 w-full">
-            <div className="flex items-center gap-4 mb-8 pb-8 border-b border-gray-50">
-              <div className="w-14 h-14 bg-igo-lime rounded-2xl flex items-center justify-center font-black text-xl text-igo-dark shadow-sm">
-                {customer.name.charAt(0)}
+        <div className="lg:w-96 flex-shrink-0 w-full animate-in fade-in slide-in-from-left-8 duration-700">
+          <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] p-8 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] border border-white/40 sticky top-28 w-full overflow-hidden group">
+            {/* Decorative background element */}
+            <div className="absolute -top-12 -right-12 w-40 h-40 bg-igo-lime/10 rounded-full blur-3xl group-hover:bg-igo-lime/20 transition-all duration-700" />
+            
+            <div className="flex flex-col items-center text-center mb-10 relative z-10">
+              <div className="relative mb-4">
+                <div className="w-24 h-24 bg-igo-lime rounded-3xl flex items-center justify-center font-black text-4xl text-igo-dark shadow-2xl rotate-3 hover:rotate-0 transition-transform duration-500">
+                  {customer.name.charAt(0)}
+                </div>
+                <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-igo-dark rounded-full flex items-center justify-center border-4 border-white">
+                  <Shield className="w-3 h-3 text-igo-lime" />
+                </div>
               </div>
-              <div className="flex flex-col min-w-0 max-w-full overflow-visible">
-                <h3 className="font-black text-igo-dark uppercase tracking-tight text-sm break-words leading-tight whitespace-normal">{customer?.name || 'Customer'}</h3>
-                <p className="text-[10px] font-bold text-igo-muted break-all opacity-80 leading-relaxed mt-1 whitespace-normal">{customer?.email || 'No email'}</p>
+              <div className="flex flex-col items-center">
+                <h3 className="font-black text-igo-dark uppercase tracking-tighter text-xl leading-none">{customer?.name || 'Customer'}</h3>
+                <div className="mt-2 flex items-center gap-2">
+                  <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                  <p className="text-[10px] font-black text-igo-muted uppercase tracking-[0.2em]">{customer?.email || 'No email'}</p>
+                </div>
               </div>
             </div>
 
-            <nav className="space-y-2">
+            <nav className="space-y-1 relative z-10">
               {[
-                { id: 'account', label: 'Account Details', icon: User },
-                { id: 'orders', label: 'My Orders', icon: Package },
-                { id: 'tracker', label: 'Track Order', icon: Truck },
-                { id: 'billing', label: 'Billing Info', icon: CreditCard },
-                { id: 'inbox', label: 'Inbox', icon: Bell },
-                { id: 'settings', label: 'Settings', icon: Settings },
-                { id: 'privacy', label: 'Privacy', icon: Shield },
+                { id: 'account', label: 'Account Profile', icon: User },
+                { id: 'orders', label: 'Project History', icon: Package },
+                { id: 'tracker', label: 'Order Tracker', icon: Truck },
+                { id: 'billing', label: 'Payment & Billing', icon: CreditCard },
+                { id: 'inbox', label: 'Official Inbox', icon: Bell, badge: unreadCount > 0 ? unreadCount : null },
+                { id: 'settings', label: 'System Settings', icon: Settings },
+                { id: 'privacy', label: 'Data & Privacy', icon: Shield },
               ].map(tab => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`w-full flex items-center justify-between p-4 rounded-2xl font-bold transition-all ${
+                  className={`w-full flex items-center justify-between p-4 rounded-2xl font-black transition-all duration-300 ${
                       activeTab === tab.id 
-                        ? 'bg-igo-dark text-white shadow-2xl scale-[1.02]' 
+                        ? 'bg-igo-dark text-white shadow-[0_20px_40px_-10px_rgba(0,0,0,0.3)] scale-[1.02]' 
                         : 'text-igo-dark hover:bg-igo-lime/10'
                     }`}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-4">
                     <tab.icon className={`w-4 h-4 ${activeTab === tab.id ? 'text-igo-lime' : 'text-igo-muted'}`} />
                     <span className="uppercase tracking-widest text-[10px]">{tab.label}</span>
                   </div>
                   {tab.badge ? (
-                    <span className="bg-igo-lime text-igo-dark text-[10px] px-2 py-0.5 rounded-full font-black">
+                    <span className="bg-igo-lime text-igo-dark text-[9px] px-2 py-0.5 rounded-lg font-black shadow-sm">
                       {tab.badge}
                     </span>
                   ) : (
-                    <ChevronRight className={`w-4 h-4 opacity-30 ${activeTab === tab.id ? 'hidden' : ''}`} />
+                    <ChevronRight className={`w-4 h-4 opacity-20 group-hover:opacity-100 transition-opacity ${activeTab === tab.id ? 'hidden' : ''}`} />
                   )}
                 </button>
               ))}
               
-              <div className="pt-4 mt-4 border-t border-gray-50">
+              <div className="pt-6 mt-6 border-t border-gray-100/50">
                 <button
                   onClick={onLogout}
-                  className="w-full flex items-center gap-3 p-4 rounded-2xl font-bold text-red-600 hover:bg-red-50 transition-all text-left"
+                  className="w-full flex items-center gap-4 p-4 rounded-2xl font-black text-red-500 hover:bg-red-50 transition-all text-left group"
                 >
-                  <LogOut className="w-4 h-4" />
-                  <span className="uppercase tracking-widest text-[10px]">Logout Account</span>
+                  <LogOut className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  <span className="uppercase tracking-widest text-[10px]">Secure Logout</span>
                 </button>
               </div>
             </nav>
@@ -241,42 +252,73 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({
 
         {/* Content Area */}
         <div className="flex-grow w-full lg:w-2/3">
-          <div className="bg-white/90 backdrop-blur-2xl rounded-[3rem] p-8 lg:p-14 shadow-[0_32px_100px_-20px_rgba(0,0,0,0.15)] border border-white/50 min-h-[700px] animate-in fade-in slide-in-from-right-12 duration-700">
+          <div className="bg-white/90 backdrop-blur-2xl rounded-[3rem] shadow-[0_32px_100px_-20px_rgba(0,0,0,0.15)] border border-white/50 min-h-[700px] animate-in fade-in slide-in-from-right-12 duration-700 overflow-hidden relative">
+            
+            {/* Premium Hero Banner */}
+            <div className="h-48 md:h-64 relative overflow-hidden">
+              <img 
+                src="/images/branding/profile-hero.png" 
+                alt="Luxury Nursery" 
+                className="w-full h-full object-cover scale-105 hover:scale-100 transition-transform duration-1000"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-transparent" />
+              <div className="absolute bottom-8 left-8 lg:left-14">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="h-1 w-12 bg-igo-lime rounded-full" />
+                  <p className="text-white md:text-igo-dark font-black uppercase tracking-[0.4em] text-[8px] drop-shadow-md">Verified Account Profile</p>
+                </div>
+                <h2 className="text-4xl lg:text-6xl font-black text-white md:text-igo-dark uppercase tracking-tighter leading-none drop-shadow-xl">
+                  {activeTab === 'account' ? 'Dashboard' : 
+                   activeTab === 'orders' ? 'Projects' :
+                   activeTab === 'inbox' ? 'Intelligence' : activeTab}
+                </h2>
+              </div>
+            </div>
+
+            <div className="p-8 lg:p-14 pt-6 lg:pt-8">
             
             {activeTab === 'account' && (
               <div className="space-y-8">
                 <div className="mb-10">
-                  <h2 className="text-5xl font-black text-igo-dark uppercase tracking-tighter mb-3 leading-none">Account Details</h2>
-                  <div className="h-1.5 w-24 bg-igo-lime rounded-full mb-4" />
+                  <h2 className="text-4xl font-black text-igo-dark uppercase tracking-tighter mb-3 leading-none">Security Details</h2>
                   <p className="text-igo-muted font-bold uppercase tracking-[0.2em] text-[10px]">Manage your high-security biometric and contact profile</p>
                 </div>
 
-                <div className="grid gap-6">
+                <div className="grid gap-6 md:grid-cols-2">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-igo-muted uppercase tracking-widest ml-4">Full Name</label>
-                    <input
-                      disabled={!isEditing}
-                      className="w-full px-6 py-4 bg-gray-50 border-2 border-gray-50 rounded-2xl font-bold text-igo-dark outline-none focus:border-igo-lime focus:bg-white transition-all disabled:opacity-60"
-                      value={formData.name}
-                      onChange={e => setFormData({ ...formData, name: e.target.value })}
-                    />
+                    <div className="relative group">
+                      <User className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-igo-muted group-focus-within:text-igo-lime transition-colors" />
+                      <input
+                        disabled={!isEditing}
+                        className="w-full pl-14 pr-6 py-4 bg-white border-2 border-gray-100 rounded-[1.5rem] font-black text-igo-dark outline-none focus:border-igo-lime focus:shadow-xl transition-all disabled:opacity-60 disabled:bg-gray-50/50"
+                        value={formData.name}
+                        onChange={e => setFormData({ ...formData, name: e.target.value })}
+                      />
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-igo-muted uppercase tracking-widest ml-4">Email Address</label>
-                    <input
-                      disabled
-                      className="w-full px-6 py-4 bg-gray-50 border-2 border-gray-50 rounded-2xl font-bold text-igo-dark opacity-60"
-                      value={customer.email}
-                    />
+                    <div className="relative opacity-60">
+                      <Bell className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-igo-muted" />
+                      <input
+                        disabled
+                        className="w-full pl-14 pr-6 py-4 bg-gray-100 border-2 border-gray-100 rounded-[1.5rem] font-black text-igo-dark"
+                        value={customer.email}
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-igo-muted uppercase tracking-widest ml-4">Phone Number</label>
-                    <input
-                      disabled={!isEditing}
-                      className="w-full px-6 py-4 bg-gray-50 border-2 border-gray-50 rounded-2xl font-bold text-igo-dark outline-none focus:border-igo-lime focus:bg-white transition-all disabled:opacity-60"
-                      value={formData.phone}
-                      onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                    />
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="text-[10px] font-black text-igo-muted uppercase tracking-widest ml-4">Secured Contact Line</label>
+                    <div className="relative group">
+                      <Truck className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-igo-muted group-focus-within:text-igo-lime transition-colors" />
+                      <input
+                        disabled={!isEditing}
+                        className="w-full pl-14 pr-6 py-4 bg-white border-2 border-gray-100 rounded-[1.5rem] font-black text-igo-dark outline-none focus:border-igo-lime focus:shadow-xl transition-all disabled:opacity-60 disabled:bg-gray-50/50"
+                        value={formData.phone}
+                        onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                      />
+                    </div>
                   </div>
                 </div>
 
