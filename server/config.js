@@ -19,5 +19,5 @@ export const SMTP_USER = process.env.SMTP_USER || 'igonursery@gmail.com';
 export const SMTP_PASS = process.env.SMTP_PASS || 'biqo eqde vsgu oobw';
 
 // Supabase Configuration (Required for Vercel/Production)
-export const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://mrslsgjyaogqaxdpomro.supabase.co';
+export const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://coeqpwckaepquphacwws.supabase.co';
 export const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
