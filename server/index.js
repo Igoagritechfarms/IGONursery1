@@ -109,9 +109,9 @@ const requireAdmin = (request, response) => {
   return session;
 };
 
-const requireCustomer = (request, response) => {
+const requireCustomer = async (request, response) => {
   const token = getBearerToken(request);
-  const session = getCustomerSession(token);
+  const session = await getCustomerSession(token);
   if (!session) {
     sendJson(response, 401, { message: 'Unauthorized' });
     return null;
@@ -167,7 +167,7 @@ const setupTransporter = () => {
       });
     }
 
-const server = http.createServer(async (request, response) => {
+export const handler = async (request, response) => {
   const requestUrl = new URL(request.url || '/', `http://${request.headers.host}`);
   const { pathname: rawPathname } = requestUrl;
   
@@ -198,7 +198,7 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'POST' && pathname === '/api/admin/login') {
       const body = await readJsonBody(request);
       if (body.password) body.password = body.password.trim();
-      const session = createAdminSession({
+      const session = await createAdminSession({
         email: String(body.email || '').trim(),
         password: String(body.password || ''),
       });
@@ -213,7 +213,7 @@ const server = http.createServer(async (request, response) => {
     }
 
     if (request.method === 'GET' && pathname === '/api/admin/session') {
-      const session = requireAdmin(request, response);
+      const session = await requireAdmin(request, response);
       if (!session) {
         return;
       }
@@ -232,23 +232,23 @@ const server = http.createServer(async (request, response) => {
     }
 
     if (request.method === 'GET' && pathname === '/api/admin/orders') {
-      const session = requireAdmin(request, response);
+      const session = await requireAdmin(request, response);
       if (!session) {
         return;
       }
 
-      sendJson(response, 200, { orders: listAdminOrders() });
+      sendJson(response, 200, { orders: await listAdminOrders() });
       return;
     }
 
     if (request.method === 'GET' && pathname.startsWith('/api/admin/orders/')) {
-      const session = requireAdmin(request, response);
+      const session = await requireAdmin(request, response);
       if (!session) {
         return;
       }
 
       const orderNumber = decodeURIComponent(pathname.replace('/api/admin/orders/', ''));
-      const order = findAdminOrderByNumber(orderNumber);
+      const order = await findAdminOrderByNumber(orderNumber);
       if (!order) {
         sendJson(response, 404, { message: 'Order not found.' });
         return;
@@ -259,7 +259,7 @@ const server = http.createServer(async (request, response) => {
     }
 
     if (request.method === 'PATCH' && pathname.startsWith('/api/admin/orders/')) {
-      const session = requireAdmin(request, response);
+      const session = await requireAdmin(request, response);
       if (!session) {
         return;
       }
@@ -271,16 +271,16 @@ const server = http.createServer(async (request, response) => {
         return;
       }
 
-      const existingOrder = findAdminOrderByNumber(orderNumber);
+      const existingOrder = await findAdminOrderByNumber(orderNumber);
       if (!existingOrder) {
         sendJson(response, 404, { message: 'Order not found.' });
         return;
       }
 
-      const updatedOrder = updateOrderStatus(orderNumber, body.status);
+      const updatedOrder = await updateOrderStatus(orderNumber, body.status);
       
       // Re-fetch the full order to ensure all fields (including joined ones) are populated for notifications
-      const fullOrder = findAdminOrderByNumber(orderNumber);
+      const fullOrder = await findAdminOrderByNumber(orderNumber);
       
       // If order is linked to a customer, create an internal notification
       if (fullOrder.customerId) {
@@ -298,7 +298,7 @@ const server = http.createServer(async (request, response) => {
           // Only send email if notifications are enabled (check DB for linked customer)
           let shouldSendEmail = true;
           if (fullOrder.customerId) {
-            const customerRef = findCustomerById(fullOrder.customerId);
+            const customerRef = await findCustomerById(fullOrder.customerId);
             if (customerRef && customerRef.emailNotifications === false) {
               shouldSendEmail = false;
               console.log(`🔕 Email notifications disabled for customer: ${fullOrder.customerEmail}`);
@@ -337,7 +337,7 @@ const server = http.createServer(async (request, response) => {
         return;
       }
 
-      const customer = findCustomerById(id);
+      const customer = await findCustomerById(id);
       if (customer) {
         deleteCustomer(id);
         
@@ -390,11 +390,11 @@ const server = http.createServer(async (request, response) => {
         return;
       }
 
-      const order = createOrder(body);
+      const order = await createOrder(body);
 
       // If customer is logged in, create a confirmation notification for their inbox
       if (body.customerId) {
-        createNotification({
+        await createNotification({
           customerId: body.customerId,
           orderNumber: body.orderNumber,
           type: 'processing',
@@ -413,7 +413,7 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'POST' && pathname === '/api/orders/lookup') {
       const body = await readJsonBody(request);
       const references = Array.isArray(body.references) ? body.references : [];
-      sendJson(response, 200, { orders: findCustomerOrdersByReferences(references) });
+      sendJson(response, 200, { orders: await findCustomerOrdersByReferences(references) });
       return;
     }
 
@@ -426,7 +426,7 @@ const server = http.createServer(async (request, response) => {
         return;
       }
 
-      const order = findCustomerOrderByReference(orderNumber, accessKey);
+      const order = await findCustomerOrderByReference(orderNumber, accessKey);
       if (!order) {
         sendJson(response, 404, { message: 'Order not found.' });
         return;
@@ -438,7 +438,7 @@ const server = http.createServer(async (request, response) => {
 
     if (request.method === 'GET' && pathname.startsWith('/api/orders/public/')) {
       const orderNumber = decodeURIComponent(pathname.replace('/api/orders/public/', ''));
-      const order = findAdminOrderByNumber(orderNumber);
+      const order = await findAdminOrderByNumber(orderNumber);
       
       if (!order) {
         sendJson(response, 404, { message: 'Order not found.' });
@@ -477,7 +477,7 @@ const server = http.createServer(async (request, response) => {
       }
 
       // Pre-check if email already verified/exists
-      if (findCustomerByEmail(body.email)) {
+      if (await findCustomerByEmail(body.email)) {
         console.log(`❌ Signup rejected: Customer ${body.email} already exists`);
         sendJson(response, 400, { message: 'Customer with this email already exists.' });
         return;
@@ -488,7 +488,7 @@ const server = http.createServer(async (request, response) => {
         const expires = new Date(Date.now() + 15 * 60000).toISOString();
         
         console.log(`📝 Creating pending verification for ${body.email}...`);
-        createPendingVerification(body.email, 'signup', body, otp, expires);
+        await createPendingVerification(body.email, 'signup', body, otp, expires);
         
         console.log('\n' + '*'.repeat(40));
         console.log(`🔐 STAGED SIGNUP OTP FOR ${body.email}: ${otp}`);
@@ -526,7 +526,7 @@ const server = http.createServer(async (request, response) => {
         return;
       }
       
-      const pending = getPendingVerification(body.email);
+      const pending = await getPendingVerification(body.email);
       if (!pending || pending.otp_code !== body.otp || new Date(pending.expires_at) < new Date()) {
         sendJson(response, 400, { message: 'Invalid or expired OTP.' });
         return;
@@ -534,12 +534,12 @@ const server = http.createServer(async (request, response) => {
 
       try {
         if (pending.type === 'signup') {
-          const customer = createCustomer(pending.payload);
-          deletePendingVerification(body.email);
+          const customer = await createCustomer(pending.payload);
+          await deletePendingVerification(body.email);
           console.log(`✅ Profile created for verified customer: ${customer.email}`);
           
           // Auto-login: Create session immediately
-          const session = createCustomerSession({ 
+          const session = await createCustomerSession({ 
             email: customer.email, 
             password: pending.payload.password,
             isBypassPassword: true 
@@ -547,12 +547,12 @@ const server = http.createServer(async (request, response) => {
           
           sendJson(response, 201, session);
         } else if (pending.type === 'login') {
-          const session = createCustomerSession({ 
+          const session = await createCustomerSession({ 
             email: pending.email, 
             password: pending.payload.password,
             isBypassPassword: true // Internally tell createCustomerSession to skip re-hash check if we already checked it
           });
-          deletePendingVerification(body.email);
+          await deletePendingVerification(body.email);
           console.log(`✅ 2FA successful for customer: ${pending.email}`);
           sendJson(response, 200, session);
         }
@@ -569,9 +569,9 @@ const server = http.createServer(async (request, response) => {
       if (body.password) body.password = body.password.trim();
       
       console.log(`🔑 Login attempt for: ${body.email}`);
-      const customer = findCustomerByEmail(body.email);
+      const customer = await findCustomerByEmail(body.email);
       
-      if (!customer || !verifyCustomerPassword(customer.id, body.password)) {
+      if (!customer || !await verifyCustomerPassword(customer.id, body.password)) {
         console.log(`❌ Login failed for: ${body.email}`);
         sendJson(response, 401, { message: 'Invalid email or password.' });
         return;
@@ -582,7 +582,7 @@ const server = http.createServer(async (request, response) => {
       const expires = new Date(Date.now() + 10 * 60000).toISOString(); // 10 mins for login OTP
       
       // Store payload including password to recreate session on verify
-      createPendingVerification(body.email, 'login', { password: body.password }, otp, expires);
+      await createPendingVerification(body.email, 'login', { password: body.password }, otp, expires);
       
       console.log('\n' + '!'.repeat(40));
       console.log(`🔐 LOGIN 2FA OTP FOR ${body.email}: ${otp}`);
@@ -603,7 +603,7 @@ const server = http.createServer(async (request, response) => {
     }
 
     if (request.method === 'GET' && pathname === '/api/customer/session') {
-      const session = requireCustomer(request, response);
+      const session = await requireCustomer(request, response);
       if (!session) return;
       sendJson(response, 200, session);
       return;
@@ -611,34 +611,34 @@ const server = http.createServer(async (request, response) => {
 
     if (request.method === 'POST' && pathname === '/api/customer/logout') {
       const token = getBearerToken(request);
-      if (token) deleteCustomerSession(token);
+      if (token) await deleteCustomerSession(token);
       sendJson(response, 200, { success: true });
       return;
     }
 
     if (request.method === 'GET' && pathname === '/api/customer/profile') {
-      const session = requireCustomer(request, response);
+      const session = await requireCustomer(request, response);
       if (!session) return;
       sendJson(response, 200, { customer: session.customer });
       return;
     }
 
     if (request.method === 'PATCH' && pathname === '/api/customer/profile') {
-      const session = requireCustomer(request, response);
+      const session = await requireCustomer(request, response);
       if (!session) return;
       const body = await readJsonBody(request);
-      const updated = updateCustomerProfile(session.customer.id, body);
+      const updated = await updateCustomerProfile(session.customer.id, body);
       sendJson(response, 200, { customer: updated });
       return;
     }
 
     if (request.method === 'PATCH' && pathname === '/api/customer/settings') {
-      const session = requireCustomer(request, response);
+      const session = await requireCustomer(request, response);
       if (!session) return;
       try {
         const body = await readJsonBody(request);
-        updateCustomerSettings(session.customer.id, body);
-        const updated = findCustomerById(session.customer.id);
+        await updateCustomerSettings(session.customer.id, body);
+        const updated = await findCustomerById(session.customer.id);
         sendJson(response, 200, { customer: updated });
       } catch (err) {
         console.error('Settings Update Failed:', err);
@@ -648,39 +648,39 @@ const server = http.createServer(async (request, response) => {
     }
 
     if (request.method === 'PATCH' && pathname === '/api/customer/password') {
-      const session = requireCustomer(request, response);
+      const session = await requireCustomer(request, response);
       if (!session) return;
       const body = await readJsonBody(request);
       
-      if (!verifyCustomerPassword(session.customer.id, body.currentPassword)) {
+      if (!await verifyCustomerPassword(session.customer.id, body.currentPassword)) {
         sendJson(response, 400, { message: 'Incorrect current password' });
         return;
       }
 
       const salt = createSalt();
       const hash = hashPassword(body.newPassword, salt);
-      updateCustomerPassword(session.customer.id, hash, salt);
+      await updateCustomerPassword(session.customer.id, hash, salt);
 
       sendJson(response, 200, { success: true });
       return;
     }
 
     if (request.method === 'PATCH' && pathname === '/api/customer/request-deletion') {
-      const session = requireCustomer(request, response);
+      const session = await requireCustomer(request, response);
       if (!session) return;
-      requestCustomerDeletion(session.customer.id);
+      await requestCustomerDeletion(session.customer.id);
       sendJson(response, 200, { success: true });
       return;
     }
 
     if (request.method === 'POST' && pathname === '/api/customer/forgot-password') {
       const body = await readJsonBody(request);
-      const customer = findCustomerByEmail(body.email);
+      const customer = await findCustomerByEmail(body.email);
       
       if (customer) {
         const resetToken = createToken(32);
         const expires = new Date(Date.now() + 3600000).toISOString(); // 1 hour
-        setCustomerResetToken(customer.id, resetToken, expires);
+        await setCustomerResetToken(customer.id, resetToken, expires);
 
         const host = request.headers.host || 'localhost:3000';
         const protocol = request.headers['x-forwarded-proto'] || 'http';
@@ -710,7 +710,7 @@ const server = http.createServer(async (request, response) => {
 
     if (request.method === 'POST' && pathname === '/api/customer/reset-password') {
       const body = await readJsonBody(request);
-      const customer = findCustomerByResetToken(body.token);
+      const customer = await findCustomerByResetToken(body.token);
 
       if (!customer) {
         return sendJson(response, 400, { message: 'Invalid or expired reset token.' });
@@ -718,31 +718,31 @@ const server = http.createServer(async (request, response) => {
 
       const salt = createSalt();
       const hash = hashPassword(body.newPassword, salt);
-      updateCustomerPassword(customer.id, hash, salt);
-      clearCustomerResetToken(customer.id);
+      await updateCustomerPassword(customer.id, hash, salt);
+      await clearCustomerResetToken(customer.id);
       
       sendJson(response, 200, { success: true });
       return;
     }
 
     if (request.method === 'GET' && pathname === '/api/customer/orders') {
-      const session = requireCustomer(request, response);
+      const session = await requireCustomer(request, response);
       if (!session) return;
-      const orders = listCustomerOrders(session.customer.id, session.customer.email);
+      const orders = await listCustomerOrders(session.customer.id, session.customer.email);
       sendJson(response, 200, { orders });
       return;
     }
 
     if (request.method === 'GET' && pathname === '/api/customer/notifications') {
-      const session = requireCustomer(request, response);
+      const session = await requireCustomer(request, response);
       if (!session) return;
-      const notifications = listCustomerNotifications(session.customer.id);
+      const notifications = await listCustomerNotifications(session.customer.id);
       sendJson(response, 200, { notifications });
       return;
     }
 
     if (request.method === 'POST' && pathname.startsWith('/api/customer/notifications/')) {
-      const session = requireCustomer(request, response);
+      const session = await requireCustomer(request, response);
       if (!session) return;
       
       // Handle both /api/customer/notifications/:id and /api/customer/notifications/:id/read
@@ -750,7 +750,7 @@ const server = http.createServer(async (request, response) => {
       const id = segments[3]; // api(0)/customer(1)/notifications(2)/ID(3)
       
       if (id && id !== 'read') {
-        markNotificationAsRead(id, session.customer.id);
+        await markNotificationAsRead(id, session.customer.id);
         sendJson(response, 200, { success: true });
       } else {
         sendJson(response, 400, { message: 'Invalid notification ID' });
@@ -797,8 +797,14 @@ const server = http.createServer(async (request, response) => {
     console.error(error);
     sendJson(response, 500, { message: 'Internal server error.' });
   }
-});
+};
 
-server.listen(API_PORT, '127.0.0.1', () => {
-  console.log(`IGO backend API running on http://127.0.0.1:${API_PORT}`);
-});
+// Standard Node.js Server Startup
+const server = http.createServer(handler);
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  server.listen(API_PORT, '127.0.0.1', () => {
+    console.log(`IGO backend API running on http://127.0.0.1:${API_PORT}`);
+  });
+}
+
+export default handler;

@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
+import { supabase } from './supabaseClient.js';
 import { ADMIN_EMAIL, ADMIN_PASSWORD, DATA_DIR, DB_PATH, SESSION_TTL_MS } from './config.js';
 import { createSalt, createToken, hashPassword, verifyPassword } from './auth.js';
 
@@ -383,9 +384,16 @@ const hydrateNotification = (row) => {
   };
 };
 
-export const createAdminSession = ({ email, password }) => {
+export const createAdminSession = async ({ email, password }) => {
   cleanupSessionsStatement.run(new Date().toISOString());
-  const admin = selectAdminByEmailStatement.get(email);
+  
+  let admin = null;
+  if (supabase) {
+    const { data } = await supabase.from('admins').select('*').eq('email', email.toLowerCase()).single();
+    admin = data;
+  } else {
+    admin = selectAdminByEmailStatement.get(email);
+  }
 
   if (!admin || !verifyPassword(password, admin.password_salt, admin.password_hash)) {
     return null;
@@ -395,7 +403,11 @@ export const createAdminSession = ({ email, password }) => {
   const createdAt = new Date();
   const expiresAt = new Date(createdAt.getTime() + SESSION_TTL_MS).toISOString();
 
-  insertSessionStatement.run(token, admin.id, expiresAt, createdAt.toISOString());
+  if (supabase) {
+    await supabase.from('admin_sessions').insert({ token, admin_id: admin.id, expires_at: expiresAt, created_at: createdAt.toISOString() });
+  } else {
+    insertSessionStatement.run(token, admin.id, expiresAt, createdAt.toISOString());
+  }
 
   return {
     token,
@@ -407,12 +419,33 @@ export const createAdminSession = ({ email, password }) => {
   };
 };
 
-export const getAdminSession = (token) => {
+export const getAdminSession = async (token) => {
   if (!token) {
     return null;
   }
 
   cleanupSessionsStatement.run(new Date().toISOString());
+
+  if (supabase) {
+    const { data, error } = await supabase
+      .from('admin_sessions')
+      .select('*, admins(*)')
+      .eq('token', token)
+      .maybeSingle();
+    
+    if (error || !data) return null;
+
+    const admin = data.admins;
+    return {
+      token: data.token,
+      admin: {
+        id: admin.id,
+        email: admin.email,
+        name: admin.name,
+      },
+    };
+  }
+
   const session = selectSessionStatement.get(token);
   if (!session) {
     return null;
@@ -432,8 +465,57 @@ export const deleteAdminSession = (token) => {
   deleteSessionStatement.run(token);
 };
 
-export const createOrder = (payload) => {
-  const createdAt = new Date().toISOString();
+export const createOrder = async (payload) => {
+  const createdAt = payload.createdAt || new Date().toISOString();
+  
+  if (supabase) {
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .insert({
+        order_id: payload.id,
+        order_number: payload.orderNumber,
+        tracking_number: payload.trackingNumber,
+        access_key: payload.accessKey,
+        customer_id: payload.customerId || null,
+        customer_name: payload.customerName,
+        customer_email: payload.customerEmail,
+        customer_phone: payload.customerPhone,
+        shipping_address: payload.shippingAddress,
+        city: payload.city,
+        state: payload.state,
+        zip_code: payload.zipCode,
+        subtotal: payload.subtotal,
+        tax: payload.tax,
+        delivery_charge: payload.deliveryCharge,
+        total: payload.total,
+        payment_method: payload.paymentMethod,
+        last_four: payload.lastFour || null,
+        status: payload.status,
+        created_at: createdAt,
+        estimated_delivery: payload.estimatedDelivery,
+      })
+      .select()
+      .single();
+    
+    if (orderError) throw orderError;
+
+    const items = payload.items.map(item => ({
+      order_id: order.id,
+      product_id: item.product.id,
+      product_name: item.product.name,
+      product_price: item.product.price,
+      product_category: item.product.category,
+      product_image: item.product.image,
+      product_description: item.product.description,
+      quantity: item.quantity
+    }));
+
+    const { error: itemsError } = await supabase.from('order_items').insert(items);
+    if (itemsError) throw itemsError;
+
+    return { ...order, items: payload.items };
+  }
+
   db.exec('BEGIN');
   try {
     insertOrderStatement.run(
@@ -456,7 +538,7 @@ export const createOrder = (payload) => {
       payload.paymentMethod,
       payload.lastFour || null,
       payload.status,
-      payload.createdAt || createdAt,
+      createdAt,
       payload.estimatedDelivery,
     );
 
@@ -482,27 +564,69 @@ export const createOrder = (payload) => {
   }
 };
 
-export const createCustomer = ({ email, name, phone, password }) => {
+export const createCustomer = async ({ email, name, phone, password }) => {
   const salt = createSalt();
   const hash = hashPassword(password, salt);
   const createdAt = new Date().toISOString();
   const normalizedEmail = email.toLowerCase().trim();
   
+  if (supabase) {
+    const { data, error } = await supabase
+      .from('customers')
+      .insert({
+        email: normalizedEmail,
+        name,
+        phone,
+        password_hash: hash,
+        password_salt: salt,
+        is_verified: true,
+        created_at: createdAt
+      })
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  }
+
   insertCustomerStatement.run(normalizedEmail, name, phone, hash, salt, createdAt);
   const customer = selectCustomerByEmailStatement.get(normalizedEmail);
   return findCustomerById(customer.id);
 };
 
-export const updateCustomerSettings = (id, data) => {
+export const updateCustomerSettings = async (id, data) => {
+  if (supabase) {
+    await supabase
+      .from('customers')
+      .update({ name: data.name, phone: data.phone, email_notifications: data.emailNotifications ? 1 : 0 })
+      .eq('id', id);
+    return findCustomerById(id);
+  }
   updateCustomerSettingsStatement.run(data.name, data.phone, data.emailNotifications ? 1 : 0, id);
   return findCustomerById(id);
 };
 
-export const updateCustomerPassword = (id, hash, salt) => {
+export const updateCustomerPassword = async (id, hash, salt) => {
+  if (supabase) {
+    await supabase.from('customers').update({ password_hash: hash, password_salt: salt }).eq('id', id);
+    return;
+  }
   updateCustomerPasswordStatement.run(hash, salt, id);
 };
 
-export const findCustomerById = (id) => {
+export const findCustomerById = async (id) => {
+  if (supabase) {
+    const { data, error } = await supabase.from('customers').select('*').eq('id', id).maybeSingle();
+    if (error || !data) return null;
+    return {
+      id: data.id,
+      email: data.email,
+      name: data.name,
+      phone: data.phone,
+      emailNotifications: data.email_notifications === 1 || data.email_notifications === true,
+    };
+  }
+
   const row = db.prepare('SELECT * FROM customers WHERE id = ?').get(id);
   if (!row) return null;
   return {
@@ -514,14 +638,30 @@ export const findCustomerById = (id) => {
   };
 };
 
-export const findCustomerByEmail = (email) => {
+export const findCustomerByEmail = async (email) => {
   if (!email) return null;
-  return selectCustomerByEmailStatement.get(email.toLowerCase().trim());
+  const normalizedEmail = email.toLowerCase().trim();
+
+  if (supabase) {
+    const { data, error } = await supabase
+      .from('customers')
+      .select('*')
+      .eq('email', normalizedEmail)
+      .maybeSingle();
+    
+    if (error) {
+      console.error('Supabase findCustomerByEmail error:', error);
+      return null;
+    }
+    return data;
+  }
+
+  return selectCustomerByEmailStatement.get(normalizedEmail);
 };
 
-export const createCustomerSession = ({ email, password, isBypassPassword }) => {
+export const createCustomerSession = async ({ email, password, isBypassPassword }) => {
   cleanupCustomerSessionsStatement.run(new Date().toISOString());
-  const customer = selectCustomerByEmailStatement.get(email);
+  const customer = await findCustomerByEmail(email);
 
   if (!customer) {
     return null;
@@ -535,7 +675,20 @@ export const createCustomerSession = ({ email, password, isBypassPassword }) => 
   const createdAt = new Date();
   const expiresAt = new Date(createdAt.getTime() + SESSION_TTL_MS).toISOString();
 
-  insertCustomerSessionStatement.run(token, customer.id, expiresAt, createdAt.toISOString());
+  if (supabase) {
+    const { error } = await supabase
+      .from('customer_sessions')
+      .insert({
+        token,
+        customer_id: customer.id,
+        expires_at: expiresAt,
+        created_at: createdAt.toISOString()
+      });
+    
+    if (error) throw error;
+  } else {
+    insertCustomerSessionStatement.run(token, customer.id, expiresAt, createdAt.toISOString());
+  }
 
   return {
     token,
@@ -544,14 +697,37 @@ export const createCustomerSession = ({ email, password, isBypassPassword }) => 
       email: customer.email,
       name: customer.name,
       phone: customer.phone,
-      emailNotifications: customer.email_notifications === 1,
+      emailNotifications: customer.email_notifications === 1 || customer.email_notifications === true,
     },
   };
 };
 
-export const getCustomerSession = (token) => {
+export const getCustomerSession = async (token) => {
   if (!token) return null;
   cleanupCustomerSessionsStatement.run(new Date().toISOString());
+  
+  if (supabase) {
+    const { data, error } = await supabase
+      .from('customer_sessions')
+      .select('*, customers(*)')
+      .eq('token', token)
+      .maybeSingle();
+    
+    if (error || !data) return null;
+    
+    const customer = data.customers;
+    return {
+      token: data.token,
+      customer: {
+        id: customer.id,
+        email: customer.email,
+        name: customer.name,
+        phone: customer.phone,
+        emailNotifications: customer.email_notifications === 1 || customer.email_notifications === true,
+      },
+    };
+  }
+
   const row = selectCustomerSessionStatement.get(token);
   if (!row) return null;
 
@@ -567,11 +743,20 @@ export const getCustomerSession = (token) => {
   };
 };
 
-export const deleteCustomerSession = (token) => {
+export const deleteCustomerSession = async (token) => {
+  if (supabase) {
+    await supabase.from('customer_sessions').delete().eq('token', token);
+    return;
+  }
   deleteCustomerSessionStatement.run(token);
 };
 
-export const updateCustomerProfile = (id, { name, phone }) => {
+export const updateCustomerProfile = async (id, { name, phone }) => {
+  if (supabase) {
+    const { data, error } = await supabase.from('customers').update({ name, phone }).eq('id', id).select().single();
+    if (error) throw error;
+    return data;
+  }
   updateCustomerProfileStatement.run(name, phone, id);
   return selectCustomerByIdStatement.get(id);
 };
@@ -592,52 +777,170 @@ export const deleteCustomer = (id) => {
   }
 };
 
-export const setCustomerResetToken = (id, token, expires) => {
+export const setCustomerResetToken = async (id, token, expires) => {
+  if (supabase) {
+    await supabase.from('customers').update({ reset_token: token, reset_expires: expires }).eq('id', id);
+    return;
+  }
   setCustomerResetTokenStatement.run(token, expires, id);
 };
 
-export const findCustomerByResetToken = (token) => {
+export const findCustomerByResetToken = async (token) => {
   const now = new Date().toISOString();
+  if (supabase) {
+    const { data, error } = await supabase
+      .from('customers')
+      .select('*')
+      .eq('reset_token', token)
+      .gt('reset_expires', now)
+      .maybeSingle();
+    
+    if (error) return null;
+    return data;
+  }
   return findCustomerByResetTokenStatement.get(token, now);
 };
 
-export const clearCustomerResetToken = (id) => {
+export const clearCustomerResetToken = async (id) => {
+  if (supabase) {
+    await supabase.from('customers').update({ reset_token: null, reset_expires: null }).eq('id', id);
+    return;
+  }
   setCustomerResetTokenStatement.run(null, null, id);
 };
 
-export const listCustomerOrders = (customerId, email) => {
+export const listCustomerOrders = async (customerId, email) => {
+  if (supabase) {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*, order_items(*)')
+      .or(`customer_id.eq.${customerId},customer_email.eq.${email.toLowerCase()}`)
+      .order('created_at', { ascending: false });
+    
+    if (error) return [];
+    return data.map(row => ({
+      ...row,
+      items: row.order_items.map(item => ({
+        product: {
+          id: item.product_id,
+          name: item.product_name,
+          price: item.product_price,
+          category: item.product_category,
+          image: item.product_image,
+          description: item.product_description,
+        },
+        quantity: item.quantity
+      }))
+    }));
+  }
   return db.prepare('SELECT * FROM orders WHERE customer_id = ? OR lower(customer_email) = lower(?) ORDER BY datetime(created_at) DESC').all(customerId, email).map(hydrateOrder);
 };
 
-export const createNotification = ({ customerId, orderNumber, type, message }) => {
+export const createNotification = async ({ customerId, orderNumber, type, message }) => {
   const createdAt = new Date().toISOString();
+  if (supabase) {
+    await supabase.from('notifications').insert({ customer_id: customerId, order_number: orderNumber, type, message, created_at: createdAt });
+    return;
+  }
   insertNotificationStatement.run(customerId, orderNumber, type, message, createdAt);
 };
 
-export const listCustomerNotifications = (customerId) => {
+export const listCustomerNotifications = async (customerId) => {
+  if (supabase) {
+    const { data, error } = await supabase.from('notifications').select('*').eq('customer_id', customerId).order('created_at', { ascending: false });
+    if (error) return [];
+    return data.map(hydrateNotification);
+  }
   return selectNotificationsByCustomerIdStatement.all(customerId).map(hydrateNotification);
 };
 
-export const markNotificationAsRead = (id, customerId) => {
+export const markNotificationAsRead = async (id, customerId) => {
+  if (supabase) {
+    await supabase.from('notifications').update({ is_read: true }).eq('id', id).eq('customer_id', customerId);
+    return;
+  }
   markNotificationReadStatement.run(id, customerId);
 };
 
-export const requestCustomerDeletion = (id) => {
+export const requestCustomerDeletion = async (id) => {
+  if (supabase) {
+    await supabase.from('customers').update({ deletion_requested: true }).eq('id', id);
+    return;
+  }
   return db.prepare('UPDATE customers SET deletion_requested = 1 WHERE id = ?').run(id);
 };
 
 
-export const listAdminOrders = () => selectAllOrdersStatement.all().map(hydrateOrder);
+export const listAdminOrders = async () => {
+  if (supabase) {
+    const { data, error } = await supabase.from('orders').select('*, order_items(*)').order('created_at', { ascending: false });
+    if (error) return [];
+    return data.map(row => ({
+      ...row,
+      items: row.order_items.map(item => ({
+        product: {
+          id: item.product_id,
+          name: item.product_name,
+          price: item.product_price,
+          category: item.product_category,
+          image: item.product_image,
+          description: item.product_description,
+        },
+        quantity: item.quantity
+      }))
+    }));
+  }
+  return selectAllOrdersStatement.all().map(hydrateOrder);
+};
 
-export const findAdminOrderByNumber = (orderNumber) => hydrateOrder(selectOrderByNumberStatement.get(orderNumber));
+export const findAdminOrderByNumber = async (orderNumber) => {
+  if (supabase) {
+    const { data, error } = await supabase.from('orders').select('*, order_items(*)').eq('order_number', orderNumber).maybeSingle();
+    if (error || !data) return null;
+    return {
+      ...data,
+      items: data.order_items.map(item => ({
+        product: {
+          id: item.product_id,
+          name: item.product_name,
+          price: item.product_price,
+          category: item.product_category,
+          image: item.product_image,
+          description: item.product_description,
+        },
+        quantity: item.quantity
+      }))
+    };
+  }
+  return hydrateOrder(selectOrderByNumberStatement.get(orderNumber));
+};
 
-export const findCustomerOrderByReference = (orderNumber, accessKey) =>
-  hydrateOrder(selectOrdersByReferencesStatement.get(orderNumber, accessKey));
+export const findCustomerOrderByReference = async (orderNumber, accessKey) => {
+  if (supabase) {
+    const { data, error } = await supabase.from('orders').select('*, order_items(*)').eq('order_number', orderNumber).eq('access_key', accessKey).maybeSingle();
+    if (error || !data) return null;
+    return {
+      ...data,
+      items: data.order_items.map(item => ({
+        product: {
+          id: item.product_id,
+          name: item.product_name,
+          price: item.product_price,
+          category: item.product_category,
+          image: item.product_image,
+          description: item.product_description,
+        },
+        quantity: item.quantity
+      }))
+    };
+  }
+  return hydrateOrder(selectOrdersByReferencesStatement.get(orderNumber, accessKey));
+};
 
-export const findCustomerOrdersByReferences = (references) => {
+export const findCustomerOrdersByReferences = async (references) => {
   const results = [];
   for (const reference of references) {
-    const order = findCustomerOrderByReference(reference.orderNumber, reference.accessKey);
+    const order = await findCustomerOrderByReference(reference.orderNumber, reference.accessKey);
     if (order) {
       results.push(order);
     }
@@ -645,39 +948,95 @@ export const findCustomerOrdersByReferences = (references) => {
   return results.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 };
 
-export const updateOrderStatus = (orderNumber, status) => {
+export const updateOrderStatus = async (orderNumber, status) => {
+  if (supabase) {
+    await supabase.from('orders').update({ status }).eq('order_number', orderNumber);
+    return findAdminOrderByNumber(orderNumber);
+  }
   updateOrderStatusStatement.run(status, orderNumber);
   return findAdminOrderByNumber(orderNumber);
 };
 
-export const verifyCustomerPassword = (id, password) => {
-  const row = db.prepare('SELECT * FROM customers WHERE id = ?').get(id);
+export const verifyCustomerPassword = async (id, password) => {
+  const customer = await findCustomerById(id);
+  if (!customer) return false;
+  
+  // Note: For Supabase, the findCustomerById already returns the data
+  // But we need the hash and salt which might not be in the public profile
+  let row = customer;
+  if (supabase && !customer.password_hash) {
+     const { data } = await supabase.from('customers').select('password_hash, password_salt').eq('id', id).single();
+     row = data;
+  } else if (!supabase) {
+     row = db.prepare('SELECT * FROM customers WHERE id = ?').get(id);
+  }
+
   if (!row) return false;
   return verifyPassword(password, row.password_salt, row.password_hash);
 };
 
-export const setCustomerOtp = (id, code, expires) => {
+export const setCustomerOtp = async (id, code, expires) => {
+  if (supabase) {
+    await supabase.from('customers').update({ otp_code: code, otp_expires: expires }).eq('id', id);
+    return;
+  }
   db.prepare('UPDATE customers SET otp_code = ?, otp_expires = ? WHERE id = ?').run(code, expires, id);
 };
 
-export const verifyCustomerOtp = (email, code) => {
-  const customer = selectCustomerByEmailStatement.get(email);
+export const verifyCustomerOtp = async (email, code) => {
+  const customer = await findCustomerByEmail(email);
   if (!customer) return false;
   
   if (customer.otp_code === code && new Date(customer.otp_expires) > new Date()) {
-    db.prepare('UPDATE customers SET is_verified = 1, otp_code = NULL, otp_expires = NULL WHERE id = ?').run(customer.id);
+    if (supabase) {
+      await supabase
+        .from('customers')
+        .update({ is_verified: true, otp_code: null, otp_expires: null })
+        .eq('id', customer.id);
+    } else {
+      db.prepare('UPDATE customers SET is_verified = 1, otp_code = NULL, otp_expires = NULL WHERE id = ?').run(customer.id);
+    }
     return true;
   }
   return false;
 };
-export const createPendingVerification = (email, type, payload, otp, expires) => {
+export const createPendingVerification = async (email, type, payload, otp, expires) => {
+  if (supabase) {
+    const { error } = await supabase
+      .from('pending_verifications')
+      .upsert({
+        email,
+        type,
+        payload,
+        otp_code: otp,
+        expires_at: expires
+      });
+    
+    if (error) throw error;
+    return;
+  }
+
   db.prepare(`
     INSERT OR REPLACE INTO pending_verifications (email, type, payload, otp_code, expires_at)
     VALUES (?, ?, ?, ?, ?)
   `).run(email, type, JSON.stringify(payload), otp, expires);
 };
 
-export const getPendingVerification = (email) => {
+export const getPendingVerification = async (email) => {
+  if (supabase) {
+    const { data, error } = await supabase
+      .from('pending_verifications')
+      .select('*')
+      .eq('email', email)
+      .maybeSingle();
+    
+    if (error) {
+      console.error('Supabase getPendingVerification error:', error);
+      return null;
+    }
+    return data;
+  }
+
   const row = db.prepare('SELECT * FROM pending_verifications WHERE email = ?').get(email);
   if (!row) return null;
   return {
@@ -686,6 +1045,16 @@ export const getPendingVerification = (email) => {
   };
 };
 
-export const deletePendingVerification = (email) => {
+export const deletePendingVerification = async (email) => {
+  if (supabase) {
+    const { error } = await supabase
+      .from('pending_verifications')
+      .delete()
+      .eq('email', email);
+    
+    if (error) console.error('Supabase deletePendingVerification error:', error);
+    return;
+  }
+
   db.prepare('DELETE FROM pending_verifications WHERE email = ?').run(email);
 };
