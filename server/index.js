@@ -725,6 +725,31 @@ export const handler = async (request, response) => {
       return;
     }
 
+    if (request.method === 'GET' && pathname === '/api/customer/orders') {
+      const session = await requireCustomer(request, response);
+      if (!session) return;
+      const orders = await listCustomerOrders(session.customer.id);
+      sendJson(response, 200, { orders });
+      return;
+    }
+
+    if (request.method === 'GET' && pathname === '/api/customer/notifications') {
+      const session = await requireCustomer(request, response);
+      if (!session) return;
+      const notifications = await listCustomerNotifications(session.customer.id);
+      sendJson(response, 200, { notifications });
+      return;
+    }
+
+    if (request.method === 'POST' && pathname.match(/^\/api\/customer\/notifications\/(\d+)\/read$/)) {
+      const session = await requireCustomer(request, response);
+      if (!session) return;
+      const match = pathname.match(/^\/api\/customer\/notifications\/(\d+)\/read$/);
+      await markNotificationAsRead(Number(match[1]), session.customer.id);
+      sendJson(response, 200, { success: true });
+      return;
+    }
+
     if (request.method === 'PATCH' && pathname === '/api/customer/settings') {
       const session = await requireCustomer(request, response);
       if (!session) return;

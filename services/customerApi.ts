@@ -175,7 +175,6 @@ export const customerApi = {
       headers: getHeaders(),
     });
     if (!res.ok) {
-      localStorage.removeItem('igo_customer_token');
       return null;
     }
     return res.json();
@@ -258,16 +257,8 @@ export const customerApi = {
   },
 
   async getNotifications(email?: string): Promise<{ notifications: Notification[] }> {
-    let userEmail = email;
+    const userEmail = email;
     
-    // If email not provided, try to get from session (only if needed)
-    if (!userEmail) {
-      try {
-        const session = await customerApi.getSession();
-        userEmail = session?.customer?.email;
-      } catch (e) {}
-    }
-
     let allFetched: Notification[] = [];
 
     // 1. Try to fetch from Real API

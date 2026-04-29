@@ -351,6 +351,7 @@ const App: React.FC = () => {
     }
   }, [isAdmin, currentPage]);
   const [customer, setCustomer] = useState<Customer | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [customerOrders, setCustomerOrders] = useState<Order[]>([]);
   const [customerNotifications, setCustomerNotifications] = useState<Notification[]>([]);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' } | null>(null);
@@ -362,23 +363,32 @@ const App: React.FC = () => {
 
   const fetchCustomerData = async () => {
     try {
-      const [p, o, n] = await Promise.all([
+      const [pResult, oResult, nResult] = await Promise.allSettled([
         customerApi.getProfile(),
         customerApi.getOrders(),
         customerApi.getNotifications()
       ]);
-      if (p.customer) setCustomer(p.customer);
-      if (o.orders) setCustomerOrders(o.orders);
-      if (n.notifications) setCustomerNotifications(n.notifications);
+      
+      if (pResult.status === 'fulfilled' && pResult.value.customer) {
+        setCustomer(pResult.value.customer);
+      }
+      if (oResult.status === 'fulfilled' && oResult.value.orders) {
+        setCustomerOrders(oResult.value.orders);
+      }
+      if (nResult.status === 'fulfilled' && nResult.value.notifications) {
+        setCustomerNotifications(nResult.value.notifications);
+      }
     } catch (e) {
-      console.error('Session fetch error');
+      console.error('Session fetch error', e);
     }
   };
 
   useEffect(() => {
     const token = localStorage.getItem('igo_customer_token');
     if (token) {
-      fetchCustomerData();
+      fetchCustomerData().finally(() => setIsAuthLoading(false));
+    } else {
+      setIsAuthLoading(false);
     }
   }, []);
 
@@ -728,6 +738,9 @@ const App: React.FC = () => {
           />
         );
       case Page.Checkout:
+        if (isAuthLoading) {
+          return <div className="min-h-[60vh] flex items-center justify-center"><div className="w-10 h-10 border-4 border-igo-lime border-t-transparent rounded-full animate-spin"></div></div>;
+        }
         if (!customer) {
           return (
             <CustomerAuth
@@ -778,6 +791,9 @@ const App: React.FC = () => {
           />
         );
       case Page.CustomerProfile:
+        if (isAuthLoading) {
+          return <div className="min-h-[60vh] flex items-center justify-center"><div className="w-10 h-10 border-4 border-igo-lime border-t-transparent rounded-full animate-spin"></div></div>;
+        }
         if (!customer) {
           navigateTo('/customer-auth');
           return <Home />;
