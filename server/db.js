@@ -603,22 +603,23 @@ export const createCustomer = async ({ email, name, phone, password }) => {
   const normalizedEmail = email.toLowerCase().trim();
   
   if (supabase) {
-    const { data, error } = await supabase
-      .from('customers')
-      .insert({
-        email: normalizedEmail,
-        name,
-        phone,
-        password_hash: hash,
-        password_salt: salt,
-        is_verified: true,
-        created_at: createdAt
-      })
-      .select()
-      .single();
+    const secret = process.env.JWT_SECRET || 'fallback_secret_for_development_only';
+    const { data, error } = await supabase.rpc('rpc_backend_create_customer', {
+      p_email: normalizedEmail,
+      p_name: name,
+      p_phone: phone || '',
+      p_hash: hash,
+      p_salt: salt,
+      p_secret: secret
+    });
     
     if (error) throw error;
-    return data;
+    // RPC returns an array
+    if (data && data.length > 0) return data[0];
+    // Fallback: try to find the just-created customer
+    const created = await findCustomerByEmail(normalizedEmail);
+    if (!created) throw new Error(`Failed to retrieve created customer profile for ${normalizedEmail}. Possible database write failure.`);
+    return created;
   }
 
   insertCustomerStatement.run(normalizedEmail, name, phone, hash, salt, createdAt);
@@ -631,10 +632,8 @@ export const createCustomer = async ({ email, name, phone, password }) => {
 
 export const updateCustomerSettings = async (id, data) => {
   if (supabase) {
-    await supabase
-      .from('customers')
-      .update({ name: data.name, phone: data.phone, email_notifications: data.emailNotifications ? 1 : 0 })
-      .eq('id', id);
+    const secret = process.env.JWT_SECRET || 'fallback_secret_for_development_only';
+    await supabase.rpc('rpc_backend_update_customer_settings', { p_id: id, p_name: data.name, p_phone: data.phone, p_notifications: data.emailNotifications ? true : false, p_secret: secret });
     return findCustomerById(id);
   }
   updateCustomerSettingsStatement.run(data.name, data.phone, data.emailNotifications ? 1 : 0, id);
@@ -643,7 +642,8 @@ export const updateCustomerSettings = async (id, data) => {
 
 export const updateCustomerPassword = async (id, hash, salt) => {
   if (supabase) {
-    await supabase.from('customers').update({ password_hash: hash, password_salt: salt }).eq('id', id);
+    const secret = process.env.JWT_SECRET || 'fallback_secret_for_development_only';
+    await supabase.rpc('rpc_backend_update_customer_password', { p_id: id, p_hash: hash, p_salt: salt, p_secret: secret });
     return;
   }
   updateCustomerPasswordStatement.run(hash, salt, id);
@@ -651,14 +651,15 @@ export const updateCustomerPassword = async (id, hash, salt) => {
 
 export const findCustomerById = async (id) => {
   if (supabase) {
-    const { data, error } = await supabase.from('customers').select('*').eq('id', id).maybeSingle();
-    if (error || !data) return null;
+    const secret = process.env.JWT_SECRET || 'fallback_secret_for_development_only';
+    const { data, error } = await supabase.rpc('rpc_backend_find_customer_by_id', { p_id: id, p_secret: secret });
+    if (error || !data || data.length === 0) return null;
     return {
-      id: data.id,
-      email: data.email,
-      name: data.name,
-      phone: data.phone,
-      emailNotifications: data.email_notifications === 1 || data.email_notifications === true,
+      id: data[0].id,
+      email: data[0].email,
+      name: data[0].name,
+      phone: data[0].phone,
+      emailNotifications: data[0].email_notifications === 1 || data[0].email_notifications === true,
     };
   }
 
@@ -678,17 +679,14 @@ export const findCustomerByEmail = async (email) => {
   const normalizedEmail = email.toLowerCase().trim();
 
   if (supabase) {
-    const { data, error } = await supabase
-      .from('customers')
-      .select('*')
-      .eq('email', normalizedEmail)
-      .maybeSingle();
+    const secret = process.env.JWT_SECRET || 'fallback_secret_for_development_only';
+    const { data, error } = await supabase.rpc('rpc_backend_find_customer_by_email', { p_email: normalizedEmail, p_secret: secret });
     
     if (error) {
-      console.error('Supabase findCustomerByEmail error:', error);
+      console.error('Supabase findCustomerByEmail RPC error:', error);
       return null;
     }
-    return data;
+    return data && data.length > 0 ? data[0] : null;
   }
 
   return selectCustomerByEmailStatement.get(normalizedEmail);
@@ -985,7 +983,8 @@ export const findCustomerOrdersByReferences = async (references) => {
 
 export const updateOrderStatus = async (orderNumber, status) => {
   if (supabase) {
-    await supabase.from('orders').update({ status }).eq('order_number', orderNumber);
+    const secret = process.env.JWT_SECRET || 'fallback_secret_for_development_only';
+    await supabase.rpc('rpc_backend_update_order_status', { p_order_number: orderNumber, p_status: status, p_secret: secret });
     return findAdminOrderByNumber(orderNumber);
   }
   updateOrderStatusStatement.run(status, orderNumber);
@@ -1000,8 +999,9 @@ export const verifyCustomerPassword = async (id, password) => {
   // But we need the hash and salt which might not be in the public profile
   let row = customer;
   if (supabase && !customer.password_hash) {
-     const { data } = await supabase.from('customers').select('password_hash, password_salt').eq('id', id).single();
-     row = data;
+     const secret = process.env.JWT_SECRET || 'fallback_secret_for_development_only';
+     const { data } = await supabase.rpc('rpc_backend_find_customer_by_id', { p_id: id, p_secret: secret });
+     row = data && data.length > 0 ? data[0] : row;
   } else if (!supabase) {
      row = db.prepare('SELECT * FROM customers WHERE id = ?').get(id);
   }
@@ -1012,7 +1012,13 @@ export const verifyCustomerPassword = async (id, password) => {
 
 export const setCustomerOtp = async (id, code, expires) => {
   if (supabase) {
-    await supabase.from('customers').update({ otp_code: code, otp_expires: expires }).eq('id', id);
+    // We can use the update password RPC to update OTP as a shortcut if needed, but wait: setCustomerOtp is barely used.
+    // Better to just update via a new RPC or use anon access if permitted.
+    // Since we didn't write an RPC for setCustomerOtp, we can write a quick one or reuse.
+    // Let's just create a direct update, but Anon can't update customers!
+    // Actually, setCustomerOtp is used in forgot password. I'll add an RPC for it in the SQL file.
+    const secret = process.env.JWT_SECRET || 'fallback_secret_for_development_only';
+    await supabase.rpc('rpc_backend_set_customer_otp', { p_id: id, p_code: code, p_expires: expires, p_secret: secret });
     return;
   }
   db.prepare('UPDATE customers SET otp_code = ?, otp_expires = ? WHERE id = ?').run(code, expires, id);
@@ -1024,10 +1030,8 @@ export const verifyCustomerOtp = async (email, code) => {
   
   if (customer.otp_code === code && new Date(customer.otp_expires) > new Date()) {
     if (supabase) {
-      await supabase
-        .from('customers')
-        .update({ is_verified: true, otp_code: null, otp_expires: null })
-        .eq('id', customer.id);
+      const secret = process.env.JWT_SECRET || 'fallback_secret_for_development_only';
+      await supabase.rpc('rpc_backend_verify_customer_otp', { p_id: customer.id, p_secret: secret });
     } else {
       db.prepare('UPDATE customers SET is_verified = 1, otp_code = NULL, otp_expires = NULL WHERE id = ?').run(customer.id);
     }
