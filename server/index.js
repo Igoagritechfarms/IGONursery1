@@ -548,7 +548,14 @@ export const handler = async (request, response) => {
       }
       
       const pending = await getPendingVerification(body.email);
-      if (!pending || pending.otp_code !== body.otp || new Date(pending.expires_at) < new Date()) {
+      if (!pending || String(pending.otp_code) !== String(body.otp) || new Date(pending.expires_at) < new Date()) {
+        console.error(`❌ OTP Verification failed for ${body.email}:`, {
+          pendingFound: !!pending,
+          otpMatch: pending ? String(pending.otp_code) === String(body.otp) : false,
+          expired: pending ? new Date(pending.expires_at) < new Date() : false,
+          serverTime: new Date().toISOString(),
+          expiresAt: pending?.expires_at
+        });
         sendJson(response, 400, { message: 'Invalid or expired OTP.' });
         return;
       }
