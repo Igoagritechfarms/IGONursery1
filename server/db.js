@@ -613,19 +613,28 @@ export const createCustomer = async ({ email, name, phone, password }) => {
       p_secret: secret
     });
     
-    if (error) throw error;
+    if (error) {
+      throw new Error(`[Supabase RPC Error in createCustomer] Code: ${error.code}, Message: ${error.message}`);
+    }
     // RPC returns an array
     if (data && data.length > 0) return data[0];
+    
     // Fallback: try to find the just-created customer
     const created = await findCustomerByEmail(normalizedEmail);
-    if (!created) throw new Error(`Failed to retrieve created customer profile for ${normalizedEmail}. Possible database write failure.`);
+    if (!created) {
+      throw new Error(`[Supabase Fallback Error] Failed to retrieve created customer profile for ${normalizedEmail}. RPC returned: data=${JSON.stringify(data)}, error=${JSON.stringify(error)}`);
+    }
     return created;
+  }
+
+  if (process.env.VERCEL) {
+    throw new Error(`[Configuration Error] Supabase client is NULL. VITE_SUPABASE_ANON_KEY or SUPABASE_SERVICE_ROLE_KEY is missing from Vercel Environment Variables.`);
   }
 
   insertCustomerStatement.run(normalizedEmail, name, phone, hash, salt, createdAt);
   const customer = selectCustomerByEmailStatement.get(normalizedEmail);
   if (!customer) {
-    throw new Error(`Failed to retrieve created customer profile for ${normalizedEmail}. Possible database write failure.`);
+    throw new Error(`[SQLite Error] Failed to retrieve created customer profile for ${normalizedEmail}. SQLite database write failure.`);
   }
   return findCustomerById(customer.id);
 };
@@ -684,9 +693,13 @@ export const findCustomerByEmail = async (email) => {
     
     if (error) {
       console.error('Supabase findCustomerByEmail RPC error:', error);
-      return null;
+      throw new Error(`[Supabase RPC Error in findCustomerByEmail] Code: ${error.code}, Message: ${error.message}`);
     }
     return data && data.length > 0 ? data[0] : null;
+  }
+
+  if (process.env.VERCEL) {
+    return null; // Don't throw here, just return null as findCustomer expects
   }
 
   return selectCustomerByEmailStatement.get(normalizedEmail);
