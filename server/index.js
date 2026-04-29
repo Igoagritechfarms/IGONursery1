@@ -182,7 +182,8 @@ export const handler = async (request, response) => {
   
   const pathname = sanitized.startsWith('/api') ? sanitized : `/api${sanitized}`;
   
-  console.log(`[${request.method}] ${rawPathname} -> Normalized: ${pathname}`);
+  try {
+    console.log(`[${request.method}] ${rawPathname} -> Normalized: ${pathname}`);
 
   if (request.method === 'OPTIONS') {
     response.writeHead(204, {
@@ -194,7 +195,7 @@ export const handler = async (request, response) => {
     return;
   }
 
-  try {
+
     if (request.method === 'GET' && pathname === '/api/health') {
       sendJson(response, 200, { status: 'ok' });
       return;

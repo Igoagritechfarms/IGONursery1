@@ -7,15 +7,23 @@ import { createSalt, createToken, hashPassword, verifyPassword } from './auth.js
 export { createSalt, createToken, hashPassword, verifyPassword };
 
 let realDb = null;
-if (!process.env.VERCEL || !supabase) {
+
+// Only attempt local SQLite initialization if NOT on Vercel
+// Vercel uses a read-only filesystem where SQLite writes will fail.
+if (!process.env.VERCEL) {
   try {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
     const { DatabaseSync } = await import('node:sqlite');
     realDb = new DatabaseSync(DB_PATH);
     realDb.exec('PRAGMA foreign_keys = ON;');
+    console.log('✅ Local SQLite database initialized.');
   } catch (err) {
-    console.error('Failed to initialize local SQLite database:', err.message);
+    console.error('ℹ️ Local SQLite not available or failed to init (expected on some productions):', err.message);
   }
+} else {
+  console.log('🚀 Running in Vercel/Production mode - skipping local SQLite.');
 }
 
 // Fallback to a dummy object to prevent crashes on Vercel/Production
