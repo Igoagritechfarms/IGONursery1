@@ -160,9 +160,18 @@ const AdminLeads: React.FC<AdminLeadsProps> = ({ onNavigate, leadId }) => {
 
   const handleSendMessage = async () => {
     if (!selectedLead || !adminMessage.trim()) return;
-    await customerApi.addMessageToLead(selectedLead.id, 'admin', adminMessage);
+    const messageToSend = adminMessage;
+    await customerApi.addMessageToLead(selectedLead.id, 'admin', messageToSend);
     setAdminMessage('');
     loadLeads();
+
+    // Send email notification to customer
+    try {
+      await sendLeadUpdateEmail(selectedLead, selectedLead.status, `Message from IGO Admin: ${messageToSend}`);
+      console.log(`✅ Message email sent to ${selectedLead.customerEmail}`);
+    } catch (e) {
+      console.error('Failed to send message email', e);
+    }
   };
 
   const stats = {
@@ -338,21 +347,22 @@ const AdminLeads: React.FC<AdminLeadsProps> = ({ onNavigate, leadId }) => {
       {selectedLead && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8">
             <div className="absolute inset-0 bg-igo-dark/80 backdrop-blur-md animate-in fade-in duration-300" onClick={handleCloseModal}></div>
-            <div className="bg-white w-full max-w-5xl h-[85vh] rounded-[3rem] shadow-2xl relative z-10 overflow-hidden flex flex-col animate-in zoom-in slide-in-from-bottom-8 duration-500">
-                {/* Independent Close Button Layer - FIXED to ensure it's always clickable */}
-                <button 
-                  onClick={(e) => {
-                    console.log('AdminLeads: Force Closing Modal');
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleCloseModal();
-                  }} 
-                  className="absolute top-8 right-8 p-5 bg-igo-dark text-white rounded-2xl hover:bg-red-500 hover:text-white transition-all shadow-2xl z-[200] group active:scale-90 border-4 border-white cursor-pointer"
-                  title="Force Close Portal (Esc)"
-                >
-                    <X className="w-8 h-8 group-hover:rotate-90 transition-transform duration-300" />
-                </button>
+            
+            {/* Independent Close Button Layer - Moved OUTSIDE the overflow container so it is always clickable */}
+            <button 
+              onClick={(e) => {
+                console.log('AdminLeads: Force Closing Modal');
+                e.preventDefault();
+                e.stopPropagation();
+                handleCloseModal();
+              }} 
+              className="absolute top-4 right-4 md:top-8 md:right-8 p-4 bg-igo-dark text-white rounded-full hover:bg-red-500 hover:text-white transition-all shadow-2xl z-[200] group active:scale-90 border-4 border-white cursor-pointer"
+              title="Force Close Portal (Esc)"
+            >
+                <X className="w-8 h-8 group-hover:rotate-90 transition-transform duration-300" />
+            </button>
 
+            <div className="bg-white w-full max-w-5xl h-[85vh] rounded-[3rem] shadow-2xl relative z-10 overflow-hidden flex flex-col animate-in zoom-in slide-in-from-bottom-8 duration-500">
                 {/* Modal Header */}
                 <div className="p-8 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
                     <div className="flex items-center gap-6">
